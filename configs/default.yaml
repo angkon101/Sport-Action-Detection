@@ -1,0 +1,32 @@
+# Default Configuration for Sports Action Recognition
+
+experiment_name: "sports_action_baseline"
+seed: 42
+
+dataset:
+  name: "ucf101"              # "ucf101" | "ucf_sports"
+  data_dir: "data/raw"
+  annotation_file: "data/splits/trainlist01.txt"
+  num_classes: 101            # Or number of selected sports classes
+  num_frames: 16              # Number of frames sampled per video clip
+  frame_interval: 2           # Sampling stride / step
+  input_size: 224             # Spatial resolution (224x224)
+
+model:
+  backbone: "r2plus1d_18"     # Options: "r3d_18", "r2plus1d_18", "mc3_18", "resnet50_lstm"
+  pretrained: true
+  dropout: 0.5
+
+training:
+  batch_size: 8
+  num_workers: 4
+  epochs: 30
+  lr: 0.001
+  weight_decay: 0.0001
+  lr_scheduler: "cosine"      # "cosine" | "step"
+  mixed_precision: true       # fp16 automatic mixed precision
+
+checkpoint:
+  save_dir: "checkpoints"
+  save_best_only: true
+  metric: "top1_acc"
