@@ -110,3 +110,4 @@ def filter_splits_for_sports(
         out.writelines(matched_lines)
 
     return len(matched_lines)
+

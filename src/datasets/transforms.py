@@ -95,3 +95,4 @@ def get_video_transforms(input_size: int = 224) -> Tuple[VideoTransform, VideoTr
     train_transform = VideoTransform(input_size=input_size, is_training=True)
     val_transform = VideoTransform(input_size=input_size, is_training=False)
     return train_transform, val_transform
+

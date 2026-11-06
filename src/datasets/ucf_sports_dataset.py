@@ -160,3 +160,4 @@ class UCFSportsActionDataset(Dataset):
             video_tensor = self.transform(video_tensor)  # Returns [C, T, H, W]
 
         return video_tensor, label
+
