@@ -1,30 +1,32 @@
-# Default Configuration for Sports Action Recognition
+# Configuration for UCF101 Sports Action Recognition
 
-experiment_name: "sports_action_baseline"
+experiment_name: "ucf101_sports_r2plus1d"
 seed: 42
 
 dataset:
-  name: "ucf101"              # "ucf101" | "ucf_sports"
+  name: "ucf101_sports"
   data_dir: "data/raw"
-  annotation_file: "data/splits/trainlist01.txt"
-  num_classes: 101            # Or number of selected sports classes
+  train_split: "data/splits/sports_trainlist01.txt"
+  val_split: "data/splits/sports_testlist01.txt"
+  num_classes: 45
   num_frames: 16              # Number of frames sampled per video clip
-  frame_interval: 2           # Sampling stride / step
+  frame_interval: 2           # Temporal sampling stride
   input_size: 224             # Spatial resolution (224x224)
 
 model:
-  backbone: "r2plus1d_18"     # Options: "r3d_18", "r2plus1d_18", "mc3_18", "resnet50_lstm"
-  pretrained: true
+  backbone: "r2plus1d_18"     # Options: "r2plus1d_18", "r3d_18", "mc3_18", "s3d"
+  pretrained: true            # Initialize with Kinetics-400 pretrained weights
   dropout: 0.5
+  freeze_backbone: false      # Set true for linear probing / fast initial warm-up
 
 training:
-  batch_size: 8
-  num_workers: 4
+  batch_size: 8               # Fits within 4GB VRAM
+  gradient_accumulation_steps: 2  # Effective batch size = 16
+  num_workers: 2
   epochs: 30
-  lr: 0.001
+  lr: 0.0003
   weight_decay: 0.0001
-  lr_scheduler: "cosine"      # "cosine" | "step"
-  mixed_precision: true       # fp16 automatic mixed precision
+  mixed_precision: true       # Automatic Mixed Precision (fp16)
 
 checkpoint:
   save_dir: "checkpoints"
