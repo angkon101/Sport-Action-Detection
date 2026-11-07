@@ -30,3 +30,4 @@ checkpoint:
   save_dir: "checkpoints"
   save_best_only: true
   metric: "top1_acc"
+
