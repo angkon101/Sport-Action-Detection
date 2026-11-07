@@ -7,7 +7,11 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from src.datasets.sports_classes import UCF101_SPORTS_CLASSES, get_sports_class_to_idx
+from src.datasets.sports_classes import (
+    UCF101_SPORTS_CLASSES,
+    UCF_SPORTS_ACTION_CLASSES,
+    get_sports_class_to_idx,
+)
 from src.datasets.transforms import get_video_transforms
 
 
@@ -15,7 +19,7 @@ class UCFSportsActionDataset(Dataset):
     """Dataset for loading and temporal sampling of UCF sport video clips.
 
     Supports both:
-    1. Direct folder scan (data_dir/<class_name>/<video_file>)
+    1. Direct folder scan (data_dir/<class_name>/<video_file> or data_dir/<class_name>/<seq>/<video_file>)
     2. Official split files (e.g., trainlist01.txt with 'Class/video.avi <label>')
     """
 
@@ -34,7 +38,22 @@ class UCFSportsActionDataset(Dataset):
         self.num_frames = num_frames
         self.frame_interval = frame_interval
         self.is_training = is_training
-        self.classes = sorted(target_classes or UCF101_SPORTS_CLASSES)
+
+        if target_classes is not None:
+            self.classes = sorted(target_classes)
+        elif self.data_dir.exists():
+            subdirs = [d.name for d in self.data_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]
+            if any(s in UCF_SPORTS_ACTION_CLASSES for s in subdirs):
+                self.classes = sorted([s for s in subdirs if s in UCF_SPORTS_ACTION_CLASSES])
+            elif any(s in UCF101_SPORTS_CLASSES for s in subdirs):
+                self.classes = sorted([s for s in subdirs if s in UCF101_SPORTS_CLASSES])
+            elif subdirs:
+                self.classes = sorted(subdirs)
+            else:
+                self.classes = sorted(UCF101_SPORTS_CLASSES)
+        else:
+            self.classes = sorted(UCF101_SPORTS_CLASSES)
+
         self.class_to_idx = get_sports_class_to_idx(self.classes)
 
         if transform is None:
@@ -71,7 +90,7 @@ class UCFSportsActionDataset(Dataset):
 
                 label = self.class_to_idx[cls_name]
                 for ext in ["*.avi", "*.mp4", "*.mkv", "*.mov"]:
-                    for video_path in cls_folder.glob(ext):
+                    for video_path in sorted(cls_folder.rglob(ext)):
                         self.samples.append((video_path, label))
 
     def _load_video_frames(self, video_path: Path) -> np.ndarray:

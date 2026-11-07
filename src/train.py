@@ -152,38 +152,73 @@ def main():
     if device.type == "cuda":
         print(f"--> GPU: {torch.cuda.get_device_name(0)}")
 
-    # Target classes
-    target_classes = sorted(UCF101_SPORTS_CLASSES)
-    num_classes = len(target_classes)
-
-    print(f"--> Initializing datasets with {num_classes} sports classes...")
     data_dir = cfg["dataset"]["data_dir"]
-    train_split = cfg["dataset"].get("train_split", "data/splits/trainlist01.txt")
-    val_split = cfg["dataset"].get("val_split", "data/splits/testlist01.txt")
+    train_split = cfg["dataset"].get("train_split")
+    val_split = cfg["dataset"].get("val_split")
 
-    train_dataset = UCFSportsActionDataset(
-        data_dir=data_dir,
-        split_file=train_split if Path(train_split).exists() else None,
-        num_frames=cfg["dataset"].get("num_frames", 16),
-        frame_interval=cfg["dataset"].get("frame_interval", 2),
-        is_training=True,
-        target_classes=target_classes,
+    has_splits = (
+        train_split is not None
+        and Path(train_split).exists()
+        and val_split is not None
+        and Path(val_split).exists()
     )
 
-    val_dataset = UCFSportsActionDataset(
-        data_dir=data_dir,
-        split_file=val_split if Path(val_split).exists() else None,
-        num_frames=cfg["dataset"].get("num_frames", 16),
-        frame_interval=cfg["dataset"].get("frame_interval", 2),
-        is_training=False,
-        target_classes=target_classes,
-    )
+    if has_splits:
+        print(f"--> Loading dataset using split files: {train_split} / {val_split}")
+        train_dataset = UCFSportsActionDataset(
+            data_dir=data_dir,
+            split_file=train_split,
+            num_frames=cfg["dataset"].get("num_frames", 16),
+            frame_interval=cfg["dataset"].get("frame_interval", 2),
+            is_training=True,
+        )
+        val_dataset = UCFSportsActionDataset(
+            data_dir=data_dir,
+            split_file=val_split,
+            num_frames=cfg["dataset"].get("num_frames", 16),
+            frame_interval=cfg["dataset"].get("frame_interval", 2),
+            is_training=False,
+            target_classes=train_dataset.classes,
+        )
+        target_classes = train_dataset.classes
+    else:
+        print(f"--> Scanning '{data_dir}' directly and creating 80/20 train/validation split...")
+        full_train = UCFSportsActionDataset(
+            data_dir=data_dir,
+            num_frames=cfg["dataset"].get("num_frames", 16),
+            frame_interval=cfg["dataset"].get("frame_interval", 2),
+            is_training=True,
+        )
+        full_val = UCFSportsActionDataset(
+            data_dir=data_dir,
+            num_frames=cfg["dataset"].get("num_frames", 16),
+            frame_interval=cfg["dataset"].get("frame_interval", 2),
+            is_training=False,
+            target_classes=full_train.classes,
+        )
+        target_classes = full_train.classes
+        total_samples = len(full_train)
 
+        if total_samples == 0:
+            print(f"[!] Warning: No video samples found in '{data_dir}'.")
+            return
+
+        indices = list(range(total_samples))
+        rng = random.Random(cfg.get("seed", 42))
+        rng.shuffle(indices)
+
+        val_ratio = cfg["dataset"].get("val_ratio", 0.2)
+        val_size = max(1, int(total_samples * val_ratio))
+        train_indices = indices[val_size:]
+        val_indices = indices[:val_size]
+
+        from torch.utils.data import Subset
+        train_dataset = Subset(full_train, train_indices)
+        val_dataset = Subset(full_val, val_indices)
+
+    num_classes = len(target_classes)
+    print(f"--> Classes ({num_classes}): {target_classes}")
     print(f"--> Train samples: {len(train_dataset)} | Val samples: {len(val_dataset)}")
-    if len(train_dataset) == 0:
-        print("[!] Warning: No training video samples found.")
-        print(f"    Please place videos under '{data_dir}/<SportClass>/' or supply split files in 'data/splits/'.")
-        return
 
     batch_size = cfg["training"]["batch_size"]
     num_workers = cfg["training"].get("num_workers", 2)

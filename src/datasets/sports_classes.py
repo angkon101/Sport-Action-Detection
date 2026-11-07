@@ -62,6 +62,23 @@ UCF101_SPORTS_CLASSES: List[str] = [
     "VolleyballSpiking",
 ]
 
+# UCF Sports Action Dataset (13 action categories / viewpoints)
+UCF_SPORTS_ACTION_CLASSES: List[str] = [
+    "Diving-Side",
+    "Golf-Swing-Back",
+    "Golf-Swing-Front",
+    "Golf-Swing-Side",
+    "Kicking-Front",
+    "Kicking-Side",
+    "Lifting",
+    "Riding-Horse",
+    "Run-Side",
+    "SkateBoarding-Front",
+    "Swing-Bench",
+    "Swing-SideAngle",
+    "Walk-Front",
+]
+
 
 def get_sports_class_to_idx(classes: Optional[List[str]] = None) -> Dict[str, int]:
     """Returns a dictionary mapping class name to 0-indexed integer ID."""
