@@ -35,16 +35,57 @@ wandb/
 checkpoints/
 logs/
 experiments/
+reports/
+outputs/
+results/
 
-# Datasets and Media files
+# Datasets and Media Folders
+ucf action/
+ucf action*/
+ucf_action/
+ucf_sports/
+UCF101/
+ucf101/
+dataset/
+datasets/
 data/raw/
 data/processed/
 data/videos/
+data/frames/
+data/images/
+data/cache/
+
+# Image Files (Anywhere in repo)
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.webp
+*.tiff
+*.tif
+*.gif
+*.ico
+*.svg
+
+# Video Files (Anywhere in repo)
 *.mp4
 *.avi
 *.mkv
-*.tar.gz
+*.mov
+*.flv
+*.wmv
+*.webm
+*.m4v
+*.3gp
+
+# Compressed Archives
 *.zip
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.gz
 
 # Environments
 .env
@@ -64,4 +105,3 @@ venv.bak/
 # OS specific
 .DS_Store
 Thumbs.db
-
