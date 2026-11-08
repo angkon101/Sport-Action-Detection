@@ -1,0 +1,366 @@
+{
+  "source_directory": "E:\\Akhi Thesis\\UCF101\\UCF-101",
+  "total_sports_classes": 69,
+  "total_sports_videos": 9008,
+  "taxonomy": {
+    "Ball & Team Sports": [
+      {
+        "name": "BaseballPitch",
+        "videos": 150,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BaseballPitch"
+      },
+      {
+        "name": "Basketball",
+        "videos": 134,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Basketball"
+      },
+      {
+        "name": "BasketballDunk",
+        "videos": 131,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BasketballDunk"
+      },
+      {
+        "name": "Billiards",
+        "videos": 150,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Billiards"
+      },
+      {
+        "name": "Bowling",
+        "videos": 155,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Bowling"
+      },
+      {
+        "name": "CricketBowling",
+        "videos": 139,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\CricketBowling"
+      },
+      {
+        "name": "CricketShot",
+        "videos": 167,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\CricketShot"
+      },
+      {
+        "name": "FieldHockeyPenalty",
+        "videos": 126,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\FieldHockeyPenalty"
+      },
+      {
+        "name": "FrisbeeCatch",
+        "videos": 126,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\FrisbeeCatch"
+      },
+      {
+        "name": "GolfSwing",
+        "videos": 139,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\GolfSwing"
+      },
+      {
+        "name": "SoccerJuggling",
+        "videos": 147,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\SoccerJuggling"
+      },
+      {
+        "name": "SoccerPenalty",
+        "videos": 137,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\SoccerPenalty"
+      },
+      {
+        "name": "TableTennisShot",
+        "videos": 140,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\TableTennisShot"
+      },
+      {
+        "name": "TennisSwing",
+        "videos": 166,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\TennisSwing"
+      },
+      {
+        "name": "VolleyballSpiking",
+        "videos": 116,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\VolleyballSpiking"
+      }
+    ],
+    "Track & Field (Athletics)": [
+      {
+        "name": "HammerThrow",
+        "videos": 150,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\HammerThrow"
+      },
+      {
+        "name": "HighJump",
+        "videos": 123,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\HighJump"
+      },
+      {
+        "name": "JavelinThrow",
+        "videos": 117,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\JavelinThrow"
+      },
+      {
+        "name": "LongJump",
+        "videos": 131,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\LongJump"
+      },
+      {
+        "name": "PoleVault",
+        "videos": 149,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\PoleVault"
+      },
+      {
+        "name": "Shotput",
+        "videos": 144,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Shotput"
+      },
+      {
+        "name": "ThrowDiscus",
+        "videos": 130,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\ThrowDiscus"
+      }
+    ],
+    "Gymnastics & Acrobatics": [
+      {
+        "name": "BalanceBeam",
+        "videos": 108,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BalanceBeam"
+      },
+      {
+        "name": "FloorGymnastics",
+        "videos": 125,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\FloorGymnastics"
+      },
+      {
+        "name": "ParallelBars",
+        "videos": 114,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\ParallelBars"
+      },
+      {
+        "name": "PommelHorse",
+        "videos": 123,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\PommelHorse"
+      },
+      {
+        "name": "StillRings",
+        "videos": 112,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\StillRings"
+      },
+      {
+        "name": "TrampolineJumping",
+        "videos": 119,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\TrampolineJumping"
+      },
+      {
+        "name": "UnevenBars",
+        "videos": 104,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\UnevenBars"
+      },
+      {
+        "name": "IceDancing",
+        "videos": 158,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\IceDancing"
+      }
+    ],
+    "Water & Extreme Sports": [
+      {
+        "name": "BreastStroke",
+        "videos": 101,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BreastStroke"
+      },
+      {
+        "name": "CliffDiving",
+        "videos": 138,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\CliffDiving"
+      },
+      {
+        "name": "Diving",
+        "videos": 150,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Diving"
+      },
+      {
+        "name": "FrontCrawl",
+        "videos": 137,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\FrontCrawl"
+      },
+      {
+        "name": "Kayaking",
+        "videos": 141,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Kayaking"
+      },
+      {
+        "name": "Rafting",
+        "videos": 111,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Rafting"
+      },
+      {
+        "name": "Rowing",
+        "videos": 137,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Rowing"
+      },
+      {
+        "name": "SkateBoarding",
+        "videos": 120,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\SkateBoarding"
+      },
+      {
+        "name": "Skiing",
+        "videos": 135,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Skiing"
+      },
+      {
+        "name": "Skijet",
+        "videos": 100,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Skijet"
+      },
+      {
+        "name": "SkyDiving",
+        "videos": 110,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\SkyDiving"
+      },
+      {
+        "name": "Surfing",
+        "videos": 126,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Surfing"
+      }
+    ],
+    "Combat & Martial Arts": [
+      {
+        "name": "Archery",
+        "videos": 145,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Archery"
+      },
+      {
+        "name": "BoxingPunchingBag",
+        "videos": 163,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BoxingPunchingBag"
+      },
+      {
+        "name": "BoxingSpeedBag",
+        "videos": 134,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BoxingSpeedBag"
+      },
+      {
+        "name": "Fencing",
+        "videos": 111,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Fencing"
+      },
+      {
+        "name": "Nunchucks",
+        "videos": 132,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Nunchucks"
+      },
+      {
+        "name": "Punch",
+        "videos": 160,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Punch"
+      },
+      {
+        "name": "SumoWrestling",
+        "videos": 116,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\SumoWrestling"
+      }
+    ],
+    "Fitness, Strength & Athletics": [
+      {
+        "name": "BenchPress",
+        "videos": 160,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BenchPress"
+      },
+      {
+        "name": "BodyWeightSquats",
+        "videos": 112,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\BodyWeightSquats"
+      },
+      {
+        "name": "CleanAndJerk",
+        "videos": 112,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\CleanAndJerk"
+      },
+      {
+        "name": "HandstandPushups",
+        "videos": 128,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\HandstandPushups"
+      },
+      {
+        "name": "HandstandWalking",
+        "videos": 111,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\HandstandWalking"
+      },
+      {
+        "name": "JumpingJack",
+        "videos": 123,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\JumpingJack"
+      },
+      {
+        "name": "JumpRope",
+        "videos": 144,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\JumpRope"
+      },
+      {
+        "name": "Lunges",
+        "videos": 127,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Lunges"
+      },
+      {
+        "name": "PullUps",
+        "videos": 100,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\PullUps"
+      },
+      {
+        "name": "PushUps",
+        "videos": 102,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\PushUps"
+      },
+      {
+        "name": "RopeClimbing",
+        "videos": 119,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\RopeClimbing"
+      },
+      {
+        "name": "WallPushups",
+        "videos": 130,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\WallPushups"
+      },
+      {
+        "name": "RockClimbingIndoor",
+        "videos": 144,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\RockClimbingIndoor"
+      },
+      {
+        "name": "TaiChi",
+        "videos": 100,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\TaiChi"
+      }
+    ],
+    "Equestrian & Leisure Sports": [
+      {
+        "name": "Biking",
+        "videos": 134,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Biking"
+      },
+      {
+        "name": "HorseRace",
+        "videos": 124,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\HorseRace"
+      },
+      {
+        "name": "HorseRiding",
+        "videos": 164,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\HorseRiding"
+      },
+      {
+        "name": "HulaHoop",
+        "videos": 125,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\HulaHoop"
+      },
+      {
+        "name": "JugglingBalls",
+        "videos": 121,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\JugglingBalls"
+      },
+      {
+        "name": "Swing",
+        "videos": 131,
+        "path": "E:\\Akhi Thesis\\UCF101\\UCF-101\\Swing"
+      }
+    ]
+  }
+}
