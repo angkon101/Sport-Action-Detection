@@ -1,0 +1,42 @@
+# Configuration for Human-Object Interaction Multimodal BiLSTM (HOI-BiLSTM)
+
+experiment_name: "hoi_bilstm_sports_82"
+seed: 42
+
+dataset:
+  name: "ucf_action_82"
+  raw_video_dir: "ucf action"
+  features_dir: "data/features"
+  num_classes: 82
+  num_frames: 16
+  val_ratio: 0.2
+
+model:
+  name: "HOIBiLSTMClassifier"
+  visual_in_dim: 2048
+  pose_in_dim: 85
+  object_in_dim: 7
+  hoi_in_dim: 16
+  visual_proj_dim: 256
+  pose_proj_dim: 128
+  object_proj_dim: 64
+  hoi_proj_dim: 64
+  bilstm_hidden: 256
+  bilstm_layers: 2
+  dropout: 0.3
+  use_visual: true
+  use_pose: true
+  use_object: true
+  use_hoi: true
+  use_attention: true
+
+training:
+  batch_size: 32
+  epochs: 40
+  lr: 0.0005
+  weight_decay: 0.0001
+  label_smoothing: 0.1
+  lr_scheduler: "cosine"
+
+checkpoint:
+  save_dir: "checkpoints/hoi_bilstm"

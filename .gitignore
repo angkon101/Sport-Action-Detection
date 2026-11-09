@@ -46,8 +46,8 @@ ucf_action/
 ucf_sports/
 UCF101/
 ucf101/
-dataset/
-datasets/
+/dataset/
+/datasets/
 data/raw/
 data/processed/
 data/videos/
