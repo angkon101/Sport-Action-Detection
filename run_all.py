@@ -1,10 +1,11 @@
 """All-in-One Standalone Pipeline for Sports Action Recognition.
 
-Combines the complete pipeline in a single self-contained script:
-1. Feature Extractor (ResNet-50 visual, Keypoint R-CNN pose, Faster R-CNN objects, Geometric HOI)
-2. Dataset Loader (HOIFeatureDataset)
-3. Model Architecture (HOIBiLSTMClassifier with Temporal Attention Pooling)
-4. Training & Evaluation Engine (M1 through M7 ablations, Top-1/5, Macro-F1)
+Complete Master Workflow:
+1. Stratified 70% Train / 30% Test Dataset Splitting per category (--split)
+2. Multimodal Feature Preprocessing & Extraction (--extract)
+3. Pre-Flight Data Availability & Integrity Verification (--verify)
+4. Model Training on 70% Train Split (--train)
+5. Comprehensive Test Evaluation on 30% Test Split with 5 Thesis Diagrams (--evaluate)
 
 Can be run locally or directly in Google Colab without GitHub!
 """
@@ -19,15 +20,23 @@ from typing import Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, classification_report
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset, Subset
+from torch.utils.data import DataLoader, Dataset
 import torchvision.models as models
 import torchvision.models.detection as detection
 import torchvision.transforms as transforms
 from tqdm import tqdm
+
+from src.datasets.data_splitter import create_stratified_split, verify_data_readiness
+from src.utils.visualizer import (
+    plot_learning_curves,
+    plot_confusion_matrix_82,
+    plot_per_class_accuracy,
+    plot_temporal_attention_samples,
+)
 
 
 # ==============================================================================
@@ -254,19 +263,31 @@ class SportsFeatureExtractor:
 
 
 # ==============================================================================
-# 3. DATASET CLASS
+# 3. SPLIT-AWARE DATASET CLASS
 # ==============================================================================
-class HOIFeatureDataset(Dataset):
-    def __init__(self, features_dir: str | Path):
-        self.features_dir = Path(features_dir)
-        self.classes = sorted([d.name for d in self.features_dir.iterdir() if d.is_dir() and not d.name.startswith(".")])
-        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
-        self.samples = []
+class SplitAwareHOIDataset(Dataset):
+    """Loads features corresponding to a specific split (70% train or 30% test)."""
 
-        for cls_name in self.classes:
+    def __init__(self, features_dir: Path, split_file: Path, class_mapping_file: Path):
+        self.features_dir = features_dir
+        with open(class_mapping_file, "r", encoding="utf-8") as f:
+            self.class_to_idx = json.load(f)
+        self.classes = sorted(list(self.class_to_idx.keys()))
+
+        with open(split_file, "r", encoding="utf-8") as f:
+            self.split_data = json.load(f)
+
+        self.samples: List[Tuple[Path, int]] = []
+        for cls_name, rel_paths in self.split_data.items():
+            if cls_name not in self.class_to_idx:
+                continue
             lbl = self.class_to_idx[cls_name]
-            for f in (self.features_dir / cls_name).glob("*.pt"):
-                self.samples.append((f, lbl))
+            for rel_p in rel_paths:
+                p = Path(rel_p)
+                # Feature file path is: features_dir / cls_name / f"{stem}.pt"
+                feat_path = self.features_dir / cls_name / f"{p.stem}.pt"
+                if feat_path.exists():
+                    self.samples.append((feat_path, lbl))
 
     def __len__(self):
         return len(self.samples)
@@ -279,6 +300,7 @@ class HOIFeatureDataset(Dataset):
             "pose": data["pose"].float(),
             "object": data["object"].float(),
             "hoi": data["hoi"].float(),
+            "stem": path.stem,
         }, label
 
 
@@ -388,7 +410,7 @@ class HOIBiLSTMClassifier(nn.Module):
 
 
 # ==============================================================================
-# 5. PIPELINE EXECUTION (EXTRACTION + TRAINING)
+# 5. PIPELINE EXECUTION FUNCTIONS
 # ==============================================================================
 def run_feature_extraction(data_dir: Path, output_dir: Path, num_frames: int = 16):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -423,24 +445,36 @@ def run_feature_extraction(data_dir: Path, output_dir: Path, num_frames: int = 1
     print(f"\nDone! Extracted {total_extracted} videos ({total_cached} cached) in {time.time()-t0:.1f}s.")
 
 
-def run_training(features_dir: Path, model_mode: str = "M7", epochs: int = 40, batch_size: int = 32, lr: float = 0.0005, save_dir: str = "checkpoints"):
+def run_training_and_evaluation(
+    features_dir: Path,
+    splits_dir: Path,
+    model_mode: str = "M7",
+    epochs: int = 40,
+    batch_size: int = 32,
+    lr: float = 0.0005,
+    save_dir: str = "checkpoints",
+    diagrams_dir: str = "diagrams",
+):
     set_seed(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"\n--> Training Mode [{model_mode}] on Device: {device}")
 
-    dataset = HOIFeatureDataset(features_dir)
-    num_classes = len(dataset.classes)
-    total = len(dataset)
-    print(f"--> Dataset: {total} samples across {num_classes} classes")
+    train_split_file = splits_dir / "train_split_70.json"
+    test_split_file = splits_dir / "test_split_30.json"
+    class_map_file = splits_dir / "class_indices_82.json"
 
-    indices = list(range(total))
-    random.Random(42).shuffle(indices)
-    val_sz = max(1, int(total * 0.2))
-    train_set = Subset(dataset, indices[val_sz:])
-    val_set = Subset(dataset, indices[:val_sz])
+    if not train_split_file.exists() or not test_split_file.exists():
+        raise FileNotFoundError("Split files not found! Please run with --split first.")
 
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=2)
+    train_dataset = SplitAwareHOIDataset(features_dir, train_split_file, class_map_file)
+    test_dataset = SplitAwareHOIDataset(features_dir, test_split_file, class_map_file)
+
+    num_classes = len(train_dataset.classes)
+    print(f"--> Train Split (70%): {len(train_dataset)} samples")
+    print(f"--> Test Split (30%) : {len(test_dataset)} samples across {num_classes} classes")
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
 
     modes = {
         "M1": dict(use_visual=True,  use_pose=False, use_object=False, use_hoi=False, use_attention=False),
@@ -460,6 +494,7 @@ def run_training(features_dir: Path, model_mode: str = "M7", epochs: int = 40, b
     out_ckpt_dir = Path(save_dir) / model_mode
     out_ckpt_dir.mkdir(parents=True, exist_ok=True)
     best_acc = 0.0
+    history = []
 
     print("=" * 65)
     for epoch in range(1, epochs + 1):
@@ -480,12 +515,12 @@ def run_training(features_dir: Path, model_mode: str = "M7", epochs: int = 40, b
             t1_m.update(p1, y.size(0))
             t5_m.update(p5, y.size(0))
 
-        # Evaluation
+        # Validation on Test Split
         model.eval()
         v_loss, v_t1, v_t5 = AverageMeter(), AverageMeter(), AverageMeter()
         preds, tgts = [], []
         with torch.no_grad():
-            for b, y in val_loader:
+            for b, y in test_loader:
                 v, p, o, h, y = b["visual"].to(device), b["pose"].to(device), b["object"].to(device), b["hoi"].to(device), y.to(device)
                 logits, _ = model(visual=v, pose=p, obj=o, hoi=h)
                 l = criterion(logits, y)
@@ -501,39 +536,138 @@ def run_training(features_dir: Path, model_mode: str = "M7", epochs: int = 40, b
 
         print(
             f"Epoch {epoch:02d}/{epochs:02d} [{time.time()-t0:.1f}s] "
-            f"Train Loss: {loss_m.avg:.4f} | Val Loss: {v_loss.avg:.4f} | "
-            f"Val Top-1: {v_t1.avg:.2f}% | Val Top-5: {v_t5.avg:.2f}% | Macro-F1: {f1:.2f}%"
+            f"Train Loss: {loss_m.avg:.4f} | Test Loss: {v_loss.avg:.4f} | "
+            f"Test Top-1: {v_t1.avg:.2f}% | Test Top-5: {v_t5.avg:.2f}% | Macro-F1: {f1:.2f}%"
         )
+
+        history.append({
+            "epoch": epoch,
+            "train_loss": loss_m.avg, "train_top1": t1_m.avg,
+            "val_loss": v_loss.avg, "val_top1": v_t1.avg, "val_top5": v_t5.avg, "val_f1": f1
+        })
 
         if v_t1.avg > best_acc:
             best_acc = v_t1.avg
-            torch.save({"epoch": epoch, "state_dict": model.state_dict(), "best_acc": best_acc, "classes": dataset.classes}, out_ckpt_dir / "best_model.pth")
-            print(f" [★] New Best Top-1: {best_acc:.2f}% (Saved to {out_ckpt_dir}/best_model.pth)")
+            torch.save({
+                "epoch": epoch,
+                "state_dict": model.state_dict(),
+                "best_acc": best_acc,
+                "classes": train_dataset.classes,
+                "model_mode": model_mode,
+            }, out_ckpt_dir / "best_model.pth")
+            print(f" [★] New Best Test Top-1: {best_acc:.2f}% (Saved to {out_ckpt_dir}/best_model.pth)")
 
-    print(f"\nTraining Complete for {model_mode}! Peak Val Top-1: {best_acc:.2f}%")
+    # ==========================================================================
+    # 6. POST-TRAINING EVALUATION & DIAGRAM GENERATION
+    # ==========================================================================
+    print("\n" + "=" * 65)
+    print("GENERATING THESIS EVALUATION DIAGRAMS & FINAL METRICS")
+    print("=" * 65)
+    diag_path = Path(diagrams_dir) / model_mode
+    diag_path.mkdir(parents=True, exist_ok=True)
+
+    # 1. Loss & Accuracy curves
+    plot_learning_curves(history, diag_path)
+
+    # 2. Final Evaluation with Best Model
+    best_checkpoint = torch.load(out_ckpt_dir / "best_model.pth", map_location=device)
+    model.load_state_dict(best_checkpoint["state_dict"])
+    model.eval()
+
+    all_preds, all_tgts = [], []
+    sample_attns = []
+
+    with torch.no_grad():
+        for b, y in test_loader:
+            v, p, o, h = b["visual"].to(device), b["pose"].to(device), b["object"].to(device), b["hoi"].to(device)
+            logits, alpha = model(visual=v, pose=p, obj=o, hoi=h)
+            all_preds.extend(logits.argmax(-1).cpu().tolist())
+            all_tgts.extend(y.tolist())
+
+            if alpha is not None and len(sample_attns) < 5:
+                for idx_in_batch in range(min(5 - len(sample_attns), y.size(0))):
+                    cls_name = train_dataset.classes[y[idx_in_batch].item()]
+                    sample_attns.append((cls_name, alpha[idx_in_batch].cpu().numpy()))
+
+    # 3. Confusion Matrix
+    plot_confusion_matrix_82(all_tgts, all_preds, train_dataset.classes, diag_path)
+
+    # 4. Per-Class Accuracy Rankings
+    plot_per_class_accuracy(all_tgts, all_preds, train_dataset.classes, diag_path)
+
+    # 5. Temporal Attention Weights
+    if sample_attns:
+        plot_temporal_attention_samples(sample_attns, diag_path)
+
+    # 6. Classification Report JSON
+    report = classification_report(all_tgts, all_preds, target_names=train_dataset.classes, output_dict=True, zero_division=0)
+    with open(diag_path / "evaluation_report.json", "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+
+    print(f"[✓] Loss & Accuracy Learning Curves: {diag_path / 'loss_curves.png'}, {diag_path / 'accuracy_curves.png'}")
+    print(f"[✓] Normalized Confusion Matrix    : {diag_path / 'confusion_matrix_82.png'}")
+    print(f"[✓] Per-Class Accuracy Chart       : {diag_path / 'per_class_accuracy.png'}")
+    if sample_attns:
+        print(f"[✓] Temporal Attention Weights Plot: {diag_path / 'temporal_attention_weights.png'}")
+    print(f"[✓] Complete Evaluation JSON Report : {diag_path / 'evaluation_report.json'}")
+    print("=" * 65)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Standalone HOI-BiLSTM Sports Action Recognition")
+    parser = argparse.ArgumentParser(description="Master HOI-BiLSTM Sports Action Recognition Pipeline")
+    parser.add_argument("--split", action="store_true", help="Generate stratified 70/30 train/test split per category")
     parser.add_argument("--extract", action="store_true", help="Run multimodal feature extraction")
-    parser.add_argument("--train", action="store_true", help="Run model training")
+    parser.add_argument("--verify", action="store_true", help="Run pre-flight data verification")
+    parser.add_argument("--train", action="store_true", help="Run model training and diagram evaluation")
+    parser.add_argument("--all", action="store_true", help="Run full pipeline: split -> extract -> verify -> train -> evaluate")
     parser.add_argument("--data-dir", type=str, default="ucf action", help="Path to raw video dataset")
     parser.add_argument("--features-dir", type=str, default="data/features", help="Path to cached .pt features")
+    parser.add_argument("--splits-dir", type=str, default="data/splits", help="Directory for split JSONs")
     parser.add_argument("--model-mode", type=str, default="M7", choices=["M1", "M2", "M3", "M4", "M5", "M6", "M7"])
     parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=0.0005)
     args = parser.parse_args()
 
+    data_path = Path(args.data_dir)
+    feat_path = Path(args.features_dir)
+    splits_path = Path(args.splits_dir)
+
+    if args.all:
+        args.split = True
+        args.extract = True
+        args.verify = True
+        args.train = True
+
+    if args.split:
+        create_stratified_split(data_path, splits_path, train_ratio=0.7)
+
     if args.extract:
-        run_feature_extraction(Path(args.data_dir), Path(args.features_dir))
+        run_feature_extraction(data_path, feat_path)
+
+    if args.verify:
+        is_ready = verify_data_readiness(data_path, feat_path)
+        if not is_ready and args.train:
+            print("[!] Halting training because data verification failed.")
+            return
 
     if args.train:
-        run_training(Path(args.features_dir), model_mode=args.model_mode, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
+        run_training_and_evaluation(
+            features_dir=feat_path,
+            splits_dir=splits_path,
+            model_mode=args.model_mode,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            lr=args.lr,
+        )
 
-    if not args.extract and not args.train:
-        print("Please specify --extract, --train, or both!")
-        print("Example: python run_all.py --extract --train")
+    if not (args.split or args.extract or args.verify or args.train):
+        print("Please specify a pipeline stage:")
+        print("  python run_all.py --split")
+        print("  python run_all.py --extract")
+        print("  python run_all.py --verify")
+        print("  python run_all.py --train")
+        print("  python run_all.py --all")
 
 
 if __name__ == "__main__":
