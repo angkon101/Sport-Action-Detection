@@ -303,3 +303,4 @@ class SportsFeatureExtractor:
             "object": obj_feat,
             "hoi": hoi_feat,
         }
+

@@ -242,3 +242,4 @@ class HOIBiLSTMClassifier(nn.Module):
         logits = self.classifier(context)
 
         return logits, attn_weights
+

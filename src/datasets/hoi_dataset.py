@@ -59,3 +59,4 @@ class HOIFeatureDataset(Dataset):
         }
 
         return sample_dict, label
+
