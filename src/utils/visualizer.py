@@ -145,3 +145,4 @@ def plot_temporal_attention_samples(
     plt.tight_layout()
     plt.savefig(output_dir / "temporal_attention_weights.png", dpi=300)
     plt.close()
+
