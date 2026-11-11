@@ -146,8 +146,9 @@ def main():
     train_set = Subset(full_dataset, train_indices)
     val_set = Subset(full_dataset, val_indices)
 
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    num_workers = 0 if os.name == "nt" else 2
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=num_workers)
+    val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=num_workers)
 
     print(f"--> Split: {len(train_set)} train samples | {len(val_set)} val samples")
 

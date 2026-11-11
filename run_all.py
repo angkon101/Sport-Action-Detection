@@ -412,7 +412,7 @@ class HOIBiLSTMClassifier(nn.Module):
 # ==============================================================================
 # 5. PIPELINE EXECUTION FUNCTIONS
 # ==============================================================================
-def run_feature_extraction(data_dir: Path, output_dir: Path, num_frames: int = 16):
+def run_feature_extraction(data_dir: Path, output_dir: Path, num_frames: int = 16, max_per_class: Optional[int] = None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     extractor = SportsFeatureExtractor(device=device, num_frames=num_frames)
 
@@ -429,6 +429,9 @@ def run_feature_extraction(data_dir: Path, output_dir: Path, num_frames: int = 1
         videos = []
         for ext in ["*.avi", "*.mp4", "*.mkv", "*.mov"]:
             videos.extend(list(cls_folder.rglob(ext)))
+
+        if max_per_class is not None:
+            videos = videos[:max_per_class]
 
         for v_path in tqdm(videos, desc=f"[{idx}/{len(class_dirs)}] {cls_folder.name}", leave=False):
             save_path = cls_out / f"{v_path.stem}.pt"
@@ -473,8 +476,9 @@ def run_training_and_evaluation(
     print(f"--> Train Split (70%): {len(train_dataset)} samples")
     print(f"--> Test Split (30%) : {len(test_dataset)} samples across {num_classes} classes")
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+    num_workers = 0 if os.name == "nt" else 2
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     modes = {
         "M1": dict(use_visual=True,  use_pose=False, use_object=False, use_hoi=False, use_attention=False),
@@ -627,6 +631,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=0.0005)
+    parser.add_argument("--max-per-class", type=int, default=None, help="Optional max videos per class for smoke testing")
     args = parser.parse_args()
 
     data_path = Path(args.data_dir)
@@ -643,7 +648,7 @@ def main():
         create_stratified_split(data_path, splits_path, train_ratio=0.7)
 
     if args.extract:
-        run_feature_extraction(data_path, feat_path)
+        run_feature_extraction(data_path, feat_path, max_per_class=args.max_per_class)
 
     if args.verify:
         is_ready = verify_data_readiness(data_path, feat_path)
