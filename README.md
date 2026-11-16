@@ -1,118 +1,110 @@
-# Sports Action Recognition on UCF101 Sports Dataset
+# Human–Object Interaction-Aware Multimodal CNN–LSTM Framework for Sports Action Recognition
 
-A modular Deep Learning framework for Sports Action Recognition using the **UCF101 Sports Action Subset** with factorized 3D Convolutional Neural Networks (**R(2+1)D**, **R3D**, **MC3**, **S3D**).
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-ee4c2c.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![CUDA](https://img.shields.io/badge/CUDA-12.1-76B900.svg?logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
+
+A Deep Learning framework for Fine-Grained Sports Action Recognition across **82 Sports Categories** (9,151 videos) using a **4-Stream Multimodal Architecture** (Visual, Pose, Object, and HOI Kinematics) with a **2-Layer Bidirectional LSTM** and **Temporal Attention Pooling**.
 
 ---
 
-## 📌 Project Overview
+## 📌 Framework Architecture
 
-This repository is designed for thesis research on video-based sports action recognition. It provides:
-- **Curated Sports Action Taxonomy**: 45 sports-related action categories extracted from the UCF101 dataset.
-- **Efficient Temporal Video Loading**: OpenCV-based frame extraction with uniform and random temporal stride sampling.
-- **Factorized 3D Spatio-Temporal Architectures**: R(2+1)D-18 and 3D ResNet models pretrained on Kinetics-400 for strong transfer learning.
-- **Memory-Efficient Training**: Mixed Precision (FP16) and gradient accumulation tuned to fit comfortably within 4GB VRAM (GTX 1650).
-- **Thesis-Ready Evaluation**: Top-1 and Top-5 accuracy, per-class Precision/Recall/F1 metrics, and high-resolution confusion matrix generation.
-- **Inference & Visualization**: Live inference script with confidence score banners overlaid on video clips.
+```
+                       Raw Sports Video (16 sampled frames)
+                                       │
+        ┌───────────────────┬──────────┴──────────┬───────────────────┐
+        ▼                   ▼                     ▼                   ▼
+1. Visual Stream     2. Posture Stream     3. Object Stream     4. HOI Kinematics
+   [ResNet-50]       [Keypoint R-CNN]       [Faster R-CNN]      [Geometric Engine]
+  Scene context       17 skeletal joints      Sports gear        Wrist/ankle-to-gear
+   & background       + joint velocities      & centroids        distances & vectors
+     (2048-d)              (85-d)                (7-d)                 (16-d)
+        │                   │                     │                     │
+        └───────────────────┼─────────────────────┼─────────────────────┘
+                            ▼
+          [LayerNorm + GELU Linear Projections]  (Mapped to 512-d joint embedding)
+                            │
+                            ▼
+                [2-Layer Bidirectional LSTM]     (Captures forward & backward motion)
+                            │
+                            ▼
+             [Temporal Attention Pooling Head]   (Learns to focus on key action moments)
+                            │
+                            ▼
+               [82-Class Sports Classifier]
+```
+
+---
+
+## 🚀 Execution Environments (3 Mediums)
+
+Detailed, step-by-step instructions for all three platforms are in [**RUN_GUIDE.md**](RUN_GUIDE.md):
+
+| Platform | Runner / Notebook | Description |
+| :--- | :--- | :--- |
+| **💻 Local Machine** | [`run_local.py`](run_local.py) & [`notebooks/3_Local_Machine_HOI_BiLSTM.ipynb`](notebooks/3_Local_Machine_HOI_BiLSTM.ipynb) | Runs locally on Windows / VS Code with NVIDIA GPU (GTX 1650+). |
+| **☁️ Google Colab** | [`notebooks/1_Google_Colab_HOI_BiLSTM.ipynb`](notebooks/1_Google_Colab_HOI_BiLSTM.ipynb) | Cloud execution with T4 / V100 GPU and automated Google Drive backup. |
+| **⚡ Kaggle** | [`notebooks/2_Kaggle_HOI_BiLSTM.ipynb`](notebooks/2_Kaggle_HOI_BiLSTM.ipynb) | Cloud execution with Tesla P100 GPU and output zip download. |
 
 ---
 
 ## 📁 Repository Structure
 
 ```text
-├── configs/
-│   └── default.yaml                 # Experiment hyperparameters and model settings
-├── data/
-│   ├── raw/                         # Raw UCF101 video files (e.g. data/raw/<Class>/<video>.avi)
-│   ├── splits/                      # Train/test split files and sports_classes.txt
-│   └── scripts/
-│       ├── download_ucf101.py       # Helper script to download UCF101 splits
-│       └── prepare_sports_subset.py # Filters official UCF101 splits into sports subset
+├── Model Data/                      # 70/30 Stratified Split per sports class
+│   ├── Train/                       # 6,408 videos across 82 categories
+│   └── Test/                        # 2,743 videos across 82 categories
+├── notebooks/
+│   ├── 1_Google_Colab_HOI_BiLSTM.ipynb     # Google Colab Master Notebook
+│   ├── 2_Kaggle_HOI_BiLSTM.ipynb           # Kaggle P100 Notebook
+│   └── 3_Local_Machine_HOI_BiLSTM.ipynb    # Local Machine Interactive Notebook
 ├── src/
-│   ├── datasets/
-│   │   ├── sports_classes.py        # 45 sports class definitions and mapping
-│   │   ├── transforms.py            # Video temporal & spatial augmentations
-│   │   └── ucf_sports_dataset.py    # PyTorch Dataset for video clip loading
 │   ├── models/
-│   │   └── action_classifier.py     # 3D CNN backbones (R(2+1)D, R3D, MC3, S3D)
-│   ├── utils/
-│   │   └── metrics.py               # Top-k accuracy, confusion matrix plotting
-│   ├── train.py                     # Main training pipeline with mixed precision
-│   ├── evaluate.py                  # Evaluation, classification report, and CM plot
-│   └── inference.py                 # Single video inference and demo annotation
-├── requirements.txt
-└── README.md
+│   │   └── hoi_bilstm.py            # HOIBiLSTMClassifier & TemporalAttentionPooling
+│   ├── extractors/
+│   │   ├── hoi_feature_extractor.py # ResNet-50 + Keypoint R-CNN + Faster R-CNN
+│   │   └── batch_extract_features.py# Resumable batch feature extractor
+│   ├── datasets/
+│   │   ├── hoi_dataset.py           # PyTorch Dataset for cached .pt features
+│   │   └── data_splitter.py         # Stratified 70/30 splitter & tensor verifier
+│   └── utils/
+│       ├── metrics.py               # Top-k accuracy and AverageMeter
+│       └── visualizer.py            # 5 thesis publication diagram generators
+├── data/
+│   ├── scripts/
+│   │   └── populate_model_data_split.py # Physical folder splitter for Model Data
+│   └── splits/                      # Stratified split JSON index files
+├── run_local.py                     # Dedicated Local Machine CLI Runner
+├── run_all.py                       # All-in-one CLI pipeline
+├── RUN_GUIDE.md                     # Comprehensive execution guide for all 3 mediums
+└── requirements.txt
 ```
 
 ---
 
-## 🏋️‍♂️ 45 Sports Action Classes
+## ⚡ Quickstart (Local PowerShell)
 
-The sports action subset covers:
-> *Archery, BaseballPitch, Basketball, BasketballDunk, BenchPress, Biking, Billiards, Bowling, BoxingPunchingBag, BoxingSpeedBag, CleanAndJerk, CricketBowling, CricketShot, Diving, Fencing, FrisbeeCatch, GolfSwing, HorseRace, HorseRiding, IceDancing, JavelinThrow, JumpRope, Kayaking, PoleVault, PullUps, PushUps, RockClimbingIndoor, RopeClimbing, Rowing, Shotput, Skateboarding, Skiing, Skijet, SkyDiving, SoccerJuggling, SoccerPenalty, SumoWrestling, Surfing, Swing, TableTennisShot, TaiChi, TennisSwing, ThrowDiscus, TrampolineJumping, VolleyballSpiking.*
+```powershell
+# 1. Quick 2-Minute Smoke Test (2 videos per class)
+python run_local.py --extract --data-dir "Model Data" --features-dir "data/features" --max-per-class 2
+python run_local.py --verify --features-dir "data/features"
+python run_local.py --train --features-dir "data/features" --model-mode M7 --epochs 5 --batch-size 8
+
+# 2. Full Dataset Execution (All 9,151 videos)
+python run_local.py --extract --data-dir "Model Data" --features-dir "data/features"
+python run_local.py --train --features-dir "data/features" --model-mode M7 --epochs 40 --batch-size 32
+```
 
 ---
 
-## 🚀 Quickstart Guide
+## 📊 Evaluation & Publication Diagrams
 
-### 1. Environment Setup
-
-```bash
-# Optional: create virtual environment
-python -m venv .venv
-.venv\Scripts\activate       # On Windows
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-> **CUDA Support**: For NVIDIA GPU acceleration (e.g. GTX 1650):
-> ```bash
-> pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
-> ```
-
-### 2. Dataset Setup
-
-1. **Download UCF101 Splits**:
-   ```bash
-   python data/scripts/download_ucf101.py
-   ```
-2. **Generate Sports Action Splits**:
-   ```bash
-   python data/scripts/prepare_sports_subset.py
-   ```
-3. **Download UCF101 Videos**:
-   Download the UCF101 dataset archive (`UCF101.rar`) from [CRCV UCF101 Official Source](https://www.crcv.ucf.edu/data/UCF101.php) and extract the video folders into `data/raw/` (e.g. `data/raw/Basketball/v_Basketball_g01_c01.avi`).
-
-### 3. Model Training
-
-Train the factorized 3D CNN (R(2+1)D-18) initialized with Kinetics-400 weights:
-
-```bash
-python src/train.py --config configs/default.yaml
-```
-
-Useful overrides:
-```bash
-python src/train.py --batch-size 8 --epochs 25 --lr 0.0003 --backbone r2plus1d_18
-```
-
-Checkpoints will be saved in `checkpoints/best_model.pth`.
-
-### 4. Evaluation & Metrics
-
-Evaluate the best trained model on the test split:
-
-```bash
-python src/evaluate.py --checkpoint checkpoints/best_model.pth
-```
-Outputs:
-- `reports/classification_report.json`: Precision, Recall, and F1 per sport action.
-- `reports/confusion_matrix.png`: Normalized confusion matrix visualization.
-
-### 5. Video Inference & Demo
-
-Run inference on any sports video clip:
-
-```bash
-python src/inference.py --video path/to/sample_video.mp4 --checkpoint checkpoints/best_model.pth --output demo_annotated.mp4
-```
+Training generates 5 thesis publication-quality diagrams in `diagrams/M7/`:
+1. `loss_curves.png`: Training & validation cross-entropy loss curves.
+2. `accuracy_curves.png`: Top-1 & Top-5 accuracy progression.
+3. `confusion_matrix_82.png`: High-resolution normalized 82-class confusion matrix.
+4. `per_class_accuracy.png`: Ranked horizontal bar chart of sports performance.
+5. `temporal_attention_weights.png`: Temporal attention heatmap across video keyframes.
+6. `evaluation_report.json`: Per-class Precision, Recall, and F1-score report.
