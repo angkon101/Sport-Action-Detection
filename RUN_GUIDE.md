@@ -194,3 +194,4 @@ Every training run automatically generates high-resolution figures in `diagrams/
   - Yes! The script automatically checks if a `.pt` file exists. If you stop and restart, it skips already-extracted videos and resumes immediately.
 - **Q: How long does model training take?**
   - Because features are pre-cached, training 40 epochs on your local GPU takes **only ~3 to 5 minutes**!
+
