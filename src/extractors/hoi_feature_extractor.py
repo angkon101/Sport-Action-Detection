@@ -128,8 +128,15 @@ class SportsFeatureExtractor:
         t_frames = len(frames)
         raw_kpts = np.zeros((t_frames, 17, 3), dtype=np.float32)
 
-        detection_inputs = [transforms.functional.to_tensor(f).to(self.device) for f in frames]
-        predictions = self.keypoint_model(detection_inputs)
+        # Process in mini-chunks of 4 frames to stay well below 4GB VRAM limit
+        predictions = []
+        chunk_size = 4
+        for i in range(0, t_frames, chunk_size):
+            chunk_inputs = [transforms.functional.to_tensor(f).to(self.device) for f in frames[i:i + chunk_size]]
+            chunk_preds = self.keypoint_model(chunk_inputs)
+            predictions.extend(chunk_preds)
+            if self.device.type == "cuda":
+                torch.cuda.empty_cache()
 
         for t, pred in enumerate(predictions):
             h, w = frames[t].shape[:2]
@@ -171,8 +178,15 @@ class SportsFeatureExtractor:
         obj_feats = np.zeros((t_frames, 7), dtype=np.float32)
         raw_boxes = np.zeros((t_frames, 4), dtype=np.float32)
 
-        detection_inputs = [transforms.functional.to_tensor(f).to(self.device) for f in frames]
-        predictions = self.object_model(detection_inputs)
+        # Process in mini-chunks of 4 frames
+        predictions = []
+        chunk_size = 4
+        for i in range(0, t_frames, chunk_size):
+            chunk_inputs = [transforms.functional.to_tensor(f).to(self.device) for f in frames[i:i + chunk_size]]
+            chunk_preds = self.object_model(chunk_inputs)
+            predictions.extend(chunk_preds)
+            if self.device.type == "cuda":
+                torch.cuda.empty_cache()
 
         for t, pred in enumerate(predictions):
             h, w = frames[t].shape[:2]
@@ -280,18 +294,8 @@ class SportsFeatureExtractor:
 
         return torch.from_numpy(hoi_feats).float()
 
-    def process_video(self, video_path: str | Path) -> Dict[str, torch.Tensor]:
-        """Processes a single video clip and returns the 4 multimodal feature tensors.
-
-        Returns:
-            dict containing:
-                'visual': [16, 2048]
-                'pose':   [16, 85]
-                'object': [16, 7]
-                'hoi':    [16, 16]
-        """
-        frames = self.sample_video_frames(video_path)
-
+    def process_frames(self, frames: List[np.ndarray]) -> Dict[str, object]:
+        """Processes an in-memory list of RGB frames (e.g. from camera buffer) and returns features with detections."""
         visual_feat = self.extract_visual_features(frames)
         pose_feat, raw_kpts = self.extract_pose_features(frames)
         obj_feat, raw_boxes = self.extract_object_features(frames)
@@ -302,5 +306,31 @@ class SportsFeatureExtractor:
             "pose": pose_feat,
             "object": obj_feat,
             "hoi": hoi_feat,
+            "raw_kpts": raw_kpts,
+            "raw_boxes": raw_boxes,
+            "frames": frames,
+        }
+
+    def process_video_with_detections(self, video_path: str | Path) -> Dict[str, object]:
+        """Processes a video clip and returns the 4 multimodal feature tensors along with raw detections."""
+        frames = self.sample_video_frames(video_path)
+        return self.process_frames(frames)
+
+    def process_video(self, video_path: str | Path) -> Dict[str, torch.Tensor]:
+        """Processes a single video clip and returns the 4 multimodal feature tensors.
+
+        Returns:
+            dict containing:
+                'visual': [16, 2048]
+                'pose':   [16, 85]
+                'object': [16, 7]
+                'hoi':    [16, 16]
+        """
+        result = self.process_video_with_detections(video_path)
+        return {
+            "visual": result["visual"],
+            "pose": result["pose"],
+            "object": result["object"],
+            "hoi": result["hoi"],
         }
 

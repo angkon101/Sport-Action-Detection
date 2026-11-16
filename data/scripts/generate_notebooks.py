@@ -199,6 +199,28 @@ def create_colab_notebook(output_path: Path) -> None:
                     "print(\"[✓] Downloadable archive ready: /content/Sports_Action_Results.zip\")",
                 ],
             },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 8. Real-Time Action Validation & Live Camera Web App\n",
+                    "Launches an interactive web app with a public share link (`https://xxxx.gradio.live`).\n",
+                    "- Upload any custom sports video (.mp4, .avi, .mov)\n",
+                    "- Record live from your webcam directly in the browser\n",
+                    "- Real-time visualization of 17 skeletal joints, sports equipment boxes, and HOI vectors\n",
+                    "- Live Top-5 prediction confidence chart",
+                ],
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# Launch Gradio Web App with public shareable link\n",
+                    "!python app_web.py --share",
+                ],
+            },
         ],
         "metadata": {
             "accelerator": "GPU",
@@ -402,6 +424,28 @@ def create_kaggle_notebook(output_path: Path) -> None:
                     "print(\"\\n[✓] Results packaged! You can download 'Sports_Action_Results.zip' directly from the Kaggle Output pane.\")",
                 ],
             },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 8. Real-Time Action Validation & Live Camera Web App\n",
+                    "Launches an interactive web app with a public share link (`https://xxxx.gradio.live`).\n",
+                    "- Upload any custom sports video (.mp4, .avi, .mov)\n",
+                    "- Record live from your webcam directly in the browser\n",
+                    "- Real-time visualization of 17 skeletal joints, sports equipment boxes, and HOI vectors\n",
+                    "- Live Top-5 prediction confidence chart",
+                ],
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# Launch Gradio Web App with public shareable link\n",
+                    "!python app_web.py --share",
+                ],
+            },
         ],
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
@@ -558,6 +602,28 @@ def create_local_notebook(output_path: Path) -> None:
                     "        display(Image(filename=str(img_path), width=800))\n",
                     "    else:\n",
                     "        print(f\"[!] Diagram not found: {img_path}\")",
+                ],
+            },
+            {
+                "cell_type": "markdown",
+                "metadata": {},
+                "source": [
+                    "## 8. Real-Time Action Validation & Live Camera Web App\n",
+                    "Launches an interactive web app with a public share link (`https://xxxx.gradio.live`).\n",
+                    "- Upload any custom sports video (.mp4, .avi, .mov)\n",
+                    "- Record live from your webcam directly in the browser\n",
+                    "- Real-time visualization of 17 skeletal joints, sports equipment boxes, and HOI vectors\n",
+                    "- Live Top-5 prediction confidence chart",
+                ],
+            },
+            {
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": [
+                    "# Launch Gradio Web App with public shareable link\n",
+                    "!python app_web.py --share",
                 ],
             },
         ],

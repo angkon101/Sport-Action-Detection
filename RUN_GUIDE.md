@@ -150,6 +150,52 @@ Kaggle provides free access to NVIDIA Tesla P100 GPUs (up to 30 hours per week).
 
 ---
 
+## 🎥 Real-Time Action Validation & Live Camera Scanning
+
+You can validate that the model is actively detecting human postures, sports gear, and actions on **new custom videos** or **live webcams** across all three platforms:
+
+### 1. Local Machine Validation (GUI & Webcam)
+Using [`demo_realtime.py`](demo_realtime.py):
+
+```powershell
+# A. Scan live camera / webcam in real time:
+python demo_realtime.py --camera 0
+
+# B. Upload and test ANY custom video file:
+python demo_realtime.py --video "C:\path\to\my_sports_video.mp4"
+
+# C. Test and export an annotated video:
+python demo_realtime.py --video "test.mp4" --output "results/annotated_test.mp4"
+
+# D. Test a random sample from the dataset:
+python demo_realtime.py --sample
+```
+
+**What you will see in the real-time window:**
+- **Neon Green Bones & Dots**: The 17 skeletal joint posture estimated by Keypoint R-CNN.
+- **Neon Yellow Box**: The detected sports equipment tracked by Faster R-CNN.
+- **Purple Connecting Vectors**: The geometric HOI lines connecting the athlete's wrists and ankles to the sports gear.
+- **Top HUD Banner**: Displays the detected sport action with confidence score and Top-3 runners-up.
+
+---
+
+### 2. Google Colab & Kaggle Validation (Interactive Web App)
+Cloud platforms do not have a physical desktop window, so we provide an interactive **Gradio Web App** (`app_web.py`):
+
+In your Colab or Kaggle notebook, run:
+```bash
+!pip install -q gradio
+!python app_web.py --share
+```
+
+**Features in the Cloud Web App:**
+1. **Public URL**: Generates a live link (`https://xxxx.gradio.live`) accessible from any browser or phone.
+2. **Drag & Drop Upload**: Test any MP4, AVI, or MOV video clip.
+3. **Record from Webcam**: Click "Record from Webcam" directly in the browser to capture a live action and test it immediately.
+4. **Interactive Dashboard**: Plays the annotated video with skeleton/HOI overlays and displays an interactive Top-5 probability bar chart.
+
+---
+
 ## 🔬 The 7 Model Ablations (M1 – M7)
 
 You can benchmark any of the 7 ablation models by setting `--model-mode <ID>`:
