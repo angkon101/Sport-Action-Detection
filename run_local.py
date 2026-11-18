@@ -49,7 +49,7 @@ def set_seed(seed: int = 42) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = True
 
 
 # ==============================================================================
@@ -212,10 +212,11 @@ def run_local_training(
         print("[!] No training samples found. Please extract features first.")
         return
 
-    # Windows-safe DataLoader (num_workers=0 avoids Windows multiprocessing spawn overhead)
+    # Windows-safe DataLoader with pinned memory for direct GPU DMA transfers
     num_workers = 0 if os.name == "nt" else 2
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    pin_mem = (device.type == "cuda")
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_mem)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem)
 
     # Ablation configuration
     modes = {
@@ -232,6 +233,7 @@ def run_local_training(
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
 
     ckpt_path = save_dir / model_mode
     ckpt_path.mkdir(parents=True, exist_ok=True)
@@ -252,18 +254,22 @@ def run_local_training(
         train_acc = AverageMeter("Top-1")
 
         for batch, targets in train_loader:
-            v = batch["visual"].to(device)
-            p = batch["pose"].to(device)
-            o = batch["object"].to(device)
-            h = batch["hoi"].to(device)
-            y = targets.to(device)
+            v = batch["visual"].to(device, non_blocking=True)
+            p = batch["pose"].to(device, non_blocking=True)
+            o = batch["object"].to(device, non_blocking=True)
+            h = batch["hoi"].to(device, non_blocking=True)
+            y = targets.to(device, non_blocking=True)
 
-            optimizer.zero_grad()
-            logits, _ = model(visual=v, pose=p, obj=o, hoi=h)
-            loss = criterion(logits, y)
-            loss.backward()
+            optimizer.zero_grad(set_to_none=True)
+            with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=(device.type == "cuda")):
+                logits, _ = model(visual=v, pose=p, obj=o, hoi=h)
+                loss = criterion(logits, y)
+
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
 
             acc1, _ = accuracy(logits, y, topk=(1, 5))
             train_loss.update(loss.item(), y.size(0))
@@ -271,22 +277,23 @@ def run_local_training(
 
         scheduler.step()
 
-        # Validation on test split
+        # Fast Validation on test split
         model.eval()
         val_loss = AverageMeter("Val Loss")
         val_acc1 = AverageMeter("Val Top-1")
         val_acc5 = AverageMeter("Val Top-5")
 
-        with torch.no_grad():
+        with torch.inference_mode():
             for batch, targets in test_loader:
-                v = batch["visual"].to(device)
-                p = batch["pose"].to(device)
-                o = batch["object"].to(device)
-                h = batch["hoi"].to(device)
-                y = targets.to(device)
+                v = batch["visual"].to(device, non_blocking=True)
+                p = batch["pose"].to(device, non_blocking=True)
+                o = batch["object"].to(device, non_blocking=True)
+                h = batch["hoi"].to(device, non_blocking=True)
+                y = targets.to(device, non_blocking=True)
 
-                logits, _ = model(visual=v, pose=p, obj=o, hoi=h)
-                loss = criterion(logits, y)
+                with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=(device.type == "cuda")):
+                    logits, _ = model(visual=v, pose=p, obj=o, hoi=h)
+                    loss = criterion(logits, y)
                 acc1, acc5 = accuracy(logits, y, topk=(1, 5))
 
                 val_loss.update(loss.item(), y.size(0))

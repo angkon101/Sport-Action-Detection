@@ -110,14 +110,15 @@ class SportsFeatureExtractor:
 
         return frames
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def extract_visual_features(self, frames: List[np.ndarray]) -> torch.Tensor:
         """Extracts 2048-d visual feature vector per frame. Returns [T, 2048]."""
         tensors = torch.stack([self.visual_transform(f) for f in frames]).to(self.device)
-        feats = self.visual_backbone(tensors)  # [T, 2048, 1, 1]
-        return feats.flatten(1).cpu()          # [T, 2048]
+        with torch.autocast(device_type=self.device.type, dtype=torch.float16, enabled=(self.device.type == "cuda")):
+            feats = self.visual_backbone(tensors)  # [T, 2048, 1, 1]
+        return feats.flatten(1).cpu().float()      # [T, 2048]
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def extract_pose_features(self, frames: List[np.ndarray]) -> Tuple[torch.Tensor, np.ndarray]:
         """Extracts 17 keypoints with confidence and velocity deltas.
 
@@ -128,12 +129,13 @@ class SportsFeatureExtractor:
         t_frames = len(frames)
         raw_kpts = np.zeros((t_frames, 17, 3), dtype=np.float32)
 
-        # Process in mini-chunks of 4 frames to stay well below 4GB VRAM limit
+        # Process in mini-chunks with mixed precision for speed and memory efficiency
         predictions = []
         chunk_size = 4
         for i in range(0, t_frames, chunk_size):
             chunk_inputs = [transforms.functional.to_tensor(f).to(self.device) for f in frames[i:i + chunk_size]]
-            chunk_preds = self.keypoint_model(chunk_inputs)
+            with torch.autocast(device_type=self.device.type, dtype=torch.float16, enabled=(self.device.type == "cuda")):
+                chunk_preds = self.keypoint_model(chunk_inputs)
             predictions.extend(chunk_preds)
             if self.device.type == "cuda":
                 torch.cuda.empty_cache()
@@ -166,7 +168,7 @@ class SportsFeatureExtractor:
         pose_feat = np.concatenate([norm_kpts.reshape(t_frames, -1), velocities.reshape(t_frames, -1)], axis=1)
         return torch.from_numpy(pose_feat).float(), raw_kpts
 
-    @torch.no_grad()
+    @torch.inference_mode()
     def extract_object_features(self, frames: List[np.ndarray]) -> Tuple[torch.Tensor, np.ndarray]:
         """Extracts sports object detection features [cx, cy, w, h, vx, vy, mask].
 
@@ -178,12 +180,13 @@ class SportsFeatureExtractor:
         obj_feats = np.zeros((t_frames, 7), dtype=np.float32)
         raw_boxes = np.zeros((t_frames, 4), dtype=np.float32)
 
-        # Process in mini-chunks of 4 frames
+        # Process in mini-chunks with mixed precision
         predictions = []
         chunk_size = 4
         for i in range(0, t_frames, chunk_size):
             chunk_inputs = [transforms.functional.to_tensor(f).to(self.device) for f in frames[i:i + chunk_size]]
-            chunk_preds = self.object_model(chunk_inputs)
+            with torch.autocast(device_type=self.device.type, dtype=torch.float16, enabled=(self.device.type == "cuda")):
+                chunk_preds = self.object_model(chunk_inputs)
             predictions.extend(chunk_preds)
             if self.device.type == "cuda":
                 torch.cuda.empty_cache()
