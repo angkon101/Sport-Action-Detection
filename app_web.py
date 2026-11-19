@@ -67,8 +67,7 @@ def analyze_sports_video(video_path: str) -> Tuple[str, Dict[str, float], str]:
 
 
 def build_app() -> gr.Blocks:
-    theme = gr.themes.Soft(primary_hue="blue", secondary_hue="emerald")
-    with gr.Blocks(title="Sports Action Recognition & HOI Kinematics", theme=theme) as demo:
+    with gr.Blocks(title="Sports Action Recognition & HOI Kinematics") as demo:
         gr.Markdown(
             """
             # 🏋️‍♂️ Human–Object Interaction (HOI) Sports Action Recognition
@@ -121,8 +120,9 @@ def main():
     args = parser.parse_args()
 
     app = build_app()
+    theme = gr.themes.Soft(primary_hue="blue", secondary_hue="emerald")
     print(f"\n--> Launching Validation Web App on port {args.port} (Public Share: {args.share})...")
-    app.launch(share=args.share, server_port=args.port)
+    app.launch(share=args.share, server_port=args.port, theme=theme)
 
 
 if __name__ == "__main__":
