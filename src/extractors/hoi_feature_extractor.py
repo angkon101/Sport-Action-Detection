@@ -40,8 +40,13 @@ SPORTS_OBJECT_COCO_IDS = {
 class SportsFeatureExtractor:
     """Extracts multimodal visual, pose, object, and HOI feature sequences from video clips."""
 
-    def __init__(self, device: Optional[torch.device] = None, num_frames: int = 16):
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, device: Optional[torch.device | str] = None, num_frames: int = 16):
+        if isinstance(device, str):
+            self.device = torch.device(device)
+        elif device is None:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            self.device = device
         self.num_frames = num_frames
 
         print(f"--> Initializing Feature Extractors on {self.device}...")
@@ -114,9 +119,9 @@ class SportsFeatureExtractor:
     def extract_visual_features(self, frames: List[np.ndarray]) -> torch.Tensor:
         """Extracts 2048-d visual feature vector per frame. Returns [T, 2048]."""
         tensors = torch.stack([self.visual_transform(f) for f in frames]).to(self.device)
-        with torch.autocast(device_type=self.device.type, dtype=torch.float16, enabled=(self.device.type == "cuda")):
-            feats = self.visual_backbone(tensors)  # [T, 2048, 1, 1]
-        return feats.flatten(1).cpu().float()      # [T, 2048]
+        feats = self.visual_backbone(tensors)  # [T, 2048, 1, 1] - run in FP32 to prevent half-precision overflow
+        feats = feats.flatten(1).cpu().float()
+        return torch.nan_to_num(feats, nan=0.0)
 
     @torch.inference_mode()
     def extract_pose_features(self, frames: List[np.ndarray]) -> Tuple[torch.Tensor, np.ndarray]:

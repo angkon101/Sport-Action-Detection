@@ -42,12 +42,15 @@ class HOIFeatureDataset(Dataset):
             print(f"--> Preloading {len(self.samples):,} feature tensors from '{self.features_dir.name}' into RAM...")
             for file_path, label in tqdm(self.samples, desc=f"RAM Cache ({self.features_dir.name})", leave=False):
                 try:
-                    data = torch.load(file_path, map_location="cpu")
+                    try:
+                        data = torch.load(file_path, map_location="cpu", weights_only=False)
+                    except TypeError:
+                        data = torch.load(file_path, map_location="cpu")
                     self.cached_data.append({
-                        "visual": data["visual"].float(),
-                        "pose": data["pose"].float(),
-                        "object": data["object"].float(),
-                        "hoi": data["hoi"].float(),
+                        "visual": torch.nan_to_num(data["visual"].float(), nan=0.0),
+                        "pose": torch.nan_to_num(data["pose"].float(), nan=0.0),
+                        "object": torch.nan_to_num(data["object"].float(), nan=0.0),
+                        "hoi": torch.nan_to_num(data["hoi"].float(), nan=0.0),
                     })
                     self.cached_labels.append(label)
                 except Exception as e:
@@ -76,13 +79,16 @@ class HOIFeatureDataset(Dataset):
             return self.cached_data[idx], self.cached_labels[idx]
 
         file_path, label = self.samples[idx]
-        features = torch.load(file_path, map_location="cpu")
+        try:
+            features = torch.load(file_path, map_location="cpu", weights_only=False)
+        except TypeError:
+            features = torch.load(file_path, map_location="cpu")
 
         sample_dict = {
-            "visual": features["visual"].float(),
-            "pose": features["pose"].float(),
-            "object": features["object"].float(),
-            "hoi": features["hoi"].float(),
+            "visual": torch.nan_to_num(features["visual"].float(), nan=0.0),
+            "pose": torch.nan_to_num(features["pose"].float(), nan=0.0),
+            "object": torch.nan_to_num(features["object"].float(), nan=0.0),
+            "hoi": torch.nan_to_num(features["hoi"].float(), nan=0.0),
         }
 
         return sample_dict, label

@@ -37,11 +37,14 @@ def plot_learning_curves(history: List[Dict], output_dir: Path) -> None:
 
     # 2. Accuracy Curves
     plt.figure(figsize=(9, 5))
-    if "train_top1" in history[0]:
-        plt.plot(epochs, [h["train_top1"] for h in history], "g-o", label="Train Top-1 Acc", linewidth=2, markersize=4)
-    plt.plot(epochs, [h["val_top1"] for h in history], "b-^", label="Validation Top-1 Acc", linewidth=2, markersize=4)
-    if "val_top5" in history[0]:
-        plt.plot(epochs, [h["val_top5"] for h in history], "m--d", label="Validation Top-5 Acc", linewidth=2, markersize=4)
+    train_top1_vals = [h.get("train_top1", h.get("train_acc1", 0.0)) for h in history]
+    val_top1_vals = [h.get("val_top1", h.get("val_acc1", 0.0)) for h in history]
+    val_top5_vals = [h.get("val_top5", h.get("val_acc5", 0.0)) for h in history]
+
+    plt.plot(epochs, train_top1_vals, "g-o", label="Train Top-1 Acc", linewidth=2, markersize=4)
+    plt.plot(epochs, val_top1_vals, "b-^", label="Validation Top-1 Acc", linewidth=2, markersize=4)
+    if any(val_top5_vals):
+        plt.plot(epochs, val_top5_vals, "m--d", label="Validation Top-5 Acc", linewidth=2, markersize=4)
 
     plt.title("HOI-BiLSTM Top-1 & Top-5 Accuracy Curves", fontsize=14, pad=12)
     plt.xlabel("Epoch", fontsize=12)

@@ -99,7 +99,10 @@ def load_model_and_classes(
         ckpt_p = Path(checkpoint_path)
         if ckpt_p.exists():
             print(f"--> Loading trained model weights from: {ckpt_p}")
-            ckpt = torch.load(ckpt_p, map_location=device)
+            try:
+                ckpt = torch.load(ckpt_p, map_location=device, weights_only=False)
+            except TypeError:
+                ckpt = torch.load(ckpt_p, map_location=device)
             loaded_classes = _load_weights(ckpt)
             if loaded_classes:
                 classes = loaded_classes
@@ -108,9 +111,14 @@ def load_model_and_classes(
 
     # Default checkpoint location check
     default_ckpt = PROJECT_ROOT / "checkpoints" / "M7" / "best_model.pth"
+    if not default_ckpt.exists():
+        default_ckpt = PROJECT_ROOT / "checkpoints" / "M7" / "best_model.pt"
     if default_ckpt.exists():
         print(f"--> Found default checkpoint at: {default_ckpt}")
-        ckpt = torch.load(default_ckpt, map_location=device)
+        try:
+            ckpt = torch.load(default_ckpt, map_location=device, weights_only=False)
+        except TypeError:
+            ckpt = torch.load(default_ckpt, map_location=device)
         loaded_classes = _load_weights(ckpt)
         if loaded_classes:
             classes = loaded_classes

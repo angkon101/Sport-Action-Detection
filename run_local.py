@@ -233,7 +233,10 @@ def run_local_training(
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
-    scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
+    if hasattr(torch, "amp") and hasattr(torch.amp, "GradScaler"):
+        scaler = torch.amp.GradScaler("cuda", enabled=(device.type == "cuda"))
+    else:
+        scaler = torch.cuda.amp.GradScaler(enabled=(device.type == "cuda"))
 
     ckpt_path = save_dir / model_mode
     ckpt_path.mkdir(parents=True, exist_ok=True)
@@ -272,8 +275,9 @@ def run_local_training(
             scaler.update()
 
             acc1, _ = accuracy(logits, y, topk=(1, 5))
+            acc1_val = acc1.item() if hasattr(acc1, "item") else float(acc1)
             train_loss.update(loss.item(), y.size(0))
-            train_acc.update(acc1.item(), y.size(0))
+            train_acc.update(acc1_val, y.size(0))
 
         scheduler.step()
 
@@ -295,10 +299,12 @@ def run_local_training(
                     logits, _ = model(visual=v, pose=p, obj=o, hoi=h)
                     loss = criterion(logits, y)
                 acc1, acc5 = accuracy(logits, y, topk=(1, 5))
+                acc1_val = acc1.item() if hasattr(acc1, "item") else float(acc1)
+                acc5_val = acc5.item() if hasattr(acc5, "item") else float(acc5)
 
                 val_loss.update(loss.item(), y.size(0))
-                val_acc1.update(acc1.item(), y.size(0))
-                val_acc5.update(acc5.item(), y.size(0))
+                val_acc1.update(acc1_val, y.size(0))
+                val_acc5.update(acc5_val, y.size(0))
 
         elapsed = time.time() - t0
         print(f"{epoch:<6} | {train_loss.avg:<10.4f} | {train_acc.avg:<10.2f}% | {val_loss.avg:<10.4f} | {val_acc1.avg:<15.2f}% | {elapsed:<5.1f}s")
@@ -306,22 +312,26 @@ def run_local_training(
         history.append({
             "epoch": epoch,
             "train_loss": train_loss.avg,
+            "train_top1": train_acc.avg,
             "train_acc1": train_acc.avg,
             "val_loss": val_loss.avg,
+            "val_top1": val_acc1.avg,
             "val_acc1": val_acc1.avg,
-            "val_acc5": val_acc5.avg,
+            "val_top5": val_acc5.avg,
         })
 
         if val_acc1.avg > best_acc:
             best_acc = val_acc1.avg
-            torch.save({
+            ckpt_dict = {
                 "epoch": epoch,
                 "model_state": model.state_dict(),
                 "optimizer_state": optimizer.state_dict(),
                 "classes": train_dataset.classes,
                 "best_acc": best_acc,
                 "model_mode": model_mode,
-            }, ckpt_path / "best_model.pth")
+            }
+            torch.save(ckpt_dict, ckpt_path / "best_model.pth")
+            torch.save(ckpt_dict, ckpt_path / "best_model.pt")
 
     print("-" * 75)
     print(f"[OK] Training Complete! Best Validation Accuracy: {best_acc:.2f}%")
@@ -335,7 +345,10 @@ def run_local_training(
     print("=" * 65)
 
     # Load best checkpoint for diagram generation
-    best_ckpt = torch.load(ckpt_path / "best_model.pth", map_location=device)
+    try:
+        best_ckpt = torch.load(ckpt_path / "best_model.pth", map_location=device, weights_only=False)
+    except TypeError:
+        best_ckpt = torch.load(ckpt_path / "best_model.pth", map_location=device)
     model.load_state_dict(best_ckpt["model_state"])
     model.eval()
 
@@ -386,18 +399,125 @@ def run_local_training(
     print("=" * 65)
 
 
+def run_local_evaluation(
+    features_dir: Path,
+    model_mode: str = "M7",
+    checkpoint: Optional[str] = None,
+    batch_size: int = 64,
+) -> None:
+    """Evaluates a trained model checkpoint on the test split."""
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("\n" + "=" * 65)
+    print(f"Evaluating Model Mode: [{model_mode}]")
+    print(f"Device               : {device} ({torch.cuda.get_device_name(0) if device.type == 'cuda' else 'CPU'})")
+    print("=" * 65)
+
+    test_feat_dir = features_dir / "Test"
+    if not test_feat_dir.exists():
+        print(f"[!] Test features directory not found at: {test_feat_dir}")
+        return
+
+    test_dataset = HOIFeatureDataset(test_feat_dir, preload=True)
+    if len(test_dataset) == 0:
+        print("[!] No test samples found.")
+        return
+
+    num_classes = len(test_dataset.classes)
+    modes = {
+        "M1": dict(use_visual=True,  use_pose=False, use_object=False, use_hoi=False, use_attention=False),
+        "M2": dict(use_visual=False, use_pose=True,  use_object=False, use_hoi=False, use_attention=False),
+        "M3": dict(use_visual=False, use_pose=False, use_object=True,  use_hoi=False, use_attention=False),
+        "M4": dict(use_visual=True,  use_pose=True,  use_object=False, use_hoi=False, use_attention=False),
+        "M5": dict(use_visual=True,  use_pose=True,  use_object=True,  use_hoi=False, use_attention=False),
+        "M6": dict(use_visual=True,  use_pose=True,  use_object=True,  use_hoi=True,  use_attention=False),
+        "M7": dict(use_visual=True,  use_pose=True,  use_object=True,  use_hoi=True,  use_attention=True),
+    }
+
+    model = HOIBiLSTMClassifier(num_classes=num_classes, **modes[model_mode]).to(device)
+
+    # Resolve checkpoint
+    ckpt_path = Path(checkpoint) if checkpoint else (PROJECT_ROOT / "checkpoints" / model_mode / "best_model.pth")
+    if not ckpt_path.exists():
+        alt_path = ckpt_path.with_suffix(".pt") if ckpt_path.suffix == ".pth" else ckpt_path.with_suffix(".pth")
+        if alt_path.exists():
+            ckpt_path = alt_path
+
+    if not ckpt_path.exists():
+        print(f"[!] Checkpoint not found at: {ckpt_path}")
+        return
+
+    print(f"--> Loading weights from: {ckpt_path}")
+    try:
+        ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    except TypeError:
+        ckpt = torch.load(ckpt_path, map_location=device)
+
+    state = ckpt.get("model_state", ckpt.get("state_dict", ckpt))
+    remapped = {}
+    for k, v in state.items():
+        nk = k.replace("fusion.", "fusion_layer.").replace("attention.", "temporal_pooling.")
+        remapped[nk] = v
+    model.load_state_dict(remapped)
+    model.eval()
+
+    num_workers = 0 if os.name == "nt" else 2
+    pin_mem = (device.type == "cuda")
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_mem)
+    criterion = nn.CrossEntropyLoss()
+
+    val_loss = AverageMeter("Test Loss")
+    val_acc1 = AverageMeter("Top-1")
+    val_acc5 = AverageMeter("Top-5")
+    all_preds, all_targets = [], []
+
+    print("\n--> Running Fast Evaluation on Test Split...")
+    with torch.inference_mode():
+        for batch, targets in tqdm(test_loader, desc="Evaluating"):
+            v = batch["visual"].to(device, non_blocking=True)
+            p = batch["pose"].to(device, non_blocking=True)
+            o = batch["object"].to(device, non_blocking=True)
+            h = batch["hoi"].to(device, non_blocking=True)
+            y = targets.to(device, non_blocking=True)
+
+            with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=(device.type == "cuda")):
+                logits, _ = model(visual=v, pose=p, obj=o, hoi=h)
+                loss = criterion(logits, y)
+
+            acc1, acc5 = accuracy(logits, y, topk=(1, 5))
+            acc1_val = acc1.item() if hasattr(acc1, "item") else float(acc1)
+            acc5_val = acc5.item() if hasattr(acc5, "item") else float(acc5)
+
+            val_loss.update(loss.item(), y.size(0))
+            val_acc1.update(acc1_val, y.size(0))
+            val_acc5.update(acc5_val, y.size(0))
+
+            all_preds.extend(logits.argmax(dim=-1).cpu().tolist())
+            all_targets.extend(targets.tolist())
+
+    print("\n" + "=" * 65)
+    print("EVALUATION RESULTS")
+    print("=" * 65)
+    print(f"Test Loss        : {val_loss.avg:.4f}")
+    print(f"Top-1 Accuracy   : {val_acc1.avg:.2f}%")
+    print(f"Top-5 Accuracy   : {val_acc5.avg:.2f}%")
+    print(f"Total Evaluated  : {len(all_targets):,} samples across {num_classes} classes")
+    print("=" * 65)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Sports Action Recognition Local Runner")
     parser.add_argument("--extract", action="store_true", help="Extract multimodal features from Model Data")
     parser.add_argument("--verify", action="store_true", help="Verify features tensor readiness")
     parser.add_argument("--train", action="store_true", help="Train model & generate thesis diagrams")
+    parser.add_argument("--test", "--eval", dest="test", action="store_true", help="Evaluate trained model on test split")
     parser.add_argument("--all", action="store_true", help="Run full pipeline: extract -> verify -> train")
     parser.add_argument("--data-dir", type=str, default="Model Data", help="Path to Model Data folder")
     parser.add_argument("--features-dir", type=str, default="data/features", help="Path to cache .pt features")
+    parser.add_argument("--checkpoint", type=str, default=None, help="Path to checkpoint for testing/evaluation")
     parser.add_argument("--model-mode", type=str, default="M7", choices=["M1", "M2", "M3", "M4", "M5", "M6", "M7"])
     parser.add_argument("--epochs", type=int, default=40)
-    parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--lr", type=float, default=0.0005)
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--max-per-class", type=int, default=None, help="Optional max videos per class for smoke testing")
     args = parser.parse_args()
 
@@ -427,12 +547,21 @@ def main():
             lr=args.lr,
         )
 
-    if not (args.extract or args.verify or args.train):
+    if args.test:
+        run_local_evaluation(
+            features_dir=feat_dir,
+            model_mode=args.model_mode,
+            checkpoint=args.checkpoint,
+            batch_size=args.batch_size,
+        )
+
+    if not (args.extract or args.verify or args.train or args.test):
         print("Please specify a command:")
         print("  python run_local.py --extract               # Extract all features from Model Data")
         print("  python run_local.py --extract --max-per-class 2  # Quick 2-video test extraction")
         print("  python run_local.py --verify                # Verify feature tensors")
         print("  python run_local.py --train                 # Train M7 & generate diagrams")
+        print("  python run_local.py --test                  # Evaluate model on test split")
         print("  python run_local.py --all                   # Complete pipeline")
 
 
