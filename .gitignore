@@ -57,7 +57,7 @@ data/frames/
 data/images/
 data/cache/
 
-# Image Files (Anywhere in repo)
+# Image Files (Anywhere in repo except diagrams)
 *.jpg
 *.jpeg
 *.png
@@ -68,6 +68,10 @@ data/cache/
 *.gif
 *.ico
 *.svg
+
+# Allow publication thesis diagrams
+!diagrams/**
+!diagrams/**/*.png
 
 # Video Files (Anywhere in repo)
 *.mp4

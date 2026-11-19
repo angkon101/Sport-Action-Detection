@@ -93,6 +93,10 @@ def load_model_and_classes(
         except TypeError:
             ckpt_dict = torch.load(target_ckpt_path, map_location=device)
 
+    if ckpt_dict is not None and "classes" in ckpt_dict:
+        classes = ckpt_dict["classes"]
+    num_classes = len(classes)
+
     # Detect architecture from checkpoint state_dict
     is_transformer = False
     state = {}
@@ -130,7 +134,10 @@ def load_model_and_classes(
             elif new_k.startswith("attention."):
                 new_k = new_k.replace("attention.", "temporal_pooling.")
             remapped_state[new_k] = v
-        model.load_state_dict(remapped_state)
+        try:
+            model.load_state_dict(state)
+        except Exception:
+            model.load_state_dict(remapped_state)
         loaded_classes = ckpt_dict.get("classes", None)
         if loaded_classes:
             classes = loaded_classes
