@@ -23,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.extractors.hoi_feature_extractor import SportsFeatureExtractor, SPORTS_OBJECT_COCO_IDS
 from src.models.hoi_bilstm import HOIBiLSTMClassifier
+from src.models.hoi_transformer import HOICrossAttentionTransformer
 
 
 # Standard COCO 17-Joint Skeleton bone connections
@@ -69,19 +70,58 @@ def load_model_and_classes(
         else:
             classes = [f"Class_{i}" for i in range(82)]
 
-    num_classes = len(classes)
-    model = HOIBiLSTMClassifier(
-        num_classes=num_classes,
-        use_visual=True,
-        use_pose=True,
-        use_object=True,
-        use_hoi=True,
-        use_attention=True,
-    ).to(device)
+    # Determine target checkpoint file
+    target_ckpt_path = None
+    if checkpoint_path is not None and Path(checkpoint_path).exists():
+        target_ckpt_path = Path(checkpoint_path)
+    else:
+        for candidate in [
+            PROJECT_ROOT / "checkpoints" / "M7" / "best_model.pth",
+            PROJECT_ROOT / "checkpoints" / "M7" / "best_model.pt",
+            PROJECT_ROOT / "checkpoints" / "CMAT" / "best_model.pth",
+            PROJECT_ROOT / "checkpoints" / "CMAT" / "best_model.pt",
+        ]:
+            if candidate.exists():
+                target_ckpt_path = candidate
+                break
 
-    def _load_weights(ckpt_dict):
+    ckpt_dict = None
+    if target_ckpt_path is not None:
+        print(f"--> Loading trained model weights from: {target_ckpt_path}")
+        try:
+            ckpt_dict = torch.load(target_ckpt_path, map_location=device, weights_only=False)
+        except TypeError:
+            ckpt_dict = torch.load(target_ckpt_path, map_location=device)
+
+    # Detect architecture from checkpoint state_dict
+    is_transformer = False
+    state = {}
+    if ckpt_dict is not None:
         state = ckpt_dict.get("model_state", ckpt_dict.get("state_dict", ckpt_dict))
-        # Handle attribute name variations (e.g. fusion vs fusion_layer, attention vs temporal_pooling)
+        is_transformer = any(k.startswith(("visual_stem", "transformer", "cross_attention", "head.")) for k in state.keys())
+
+    if is_transformer:
+        print("    Architecture detected: CMAT-HOI (Cross-Modal Attention Transformer)")
+        model = HOICrossAttentionTransformer(
+            num_classes=num_classes,
+            use_visual=True,
+            use_pose=True,
+            use_object=True,
+            use_hoi=True,
+            use_attention=True,
+        ).to(device)
+    else:
+        print("    Architecture detected: HOI-BiLSTM")
+        model = HOIBiLSTMClassifier(
+            num_classes=num_classes,
+            use_visual=True,
+            use_pose=True,
+            use_object=True,
+            use_hoi=True,
+            use_attention=True,
+        ).to(device)
+
+    if ckpt_dict is not None:
         remapped_state = {}
         for k, v in state.items():
             new_k = k
@@ -91,41 +131,10 @@ def load_model_and_classes(
                 new_k = new_k.replace("attention.", "temporal_pooling.")
             remapped_state[new_k] = v
         model.load_state_dict(remapped_state)
-        cls_list = ckpt_dict.get("classes", None)
-        return cls_list
-
-    # Load weights if checkpoint exists
-    if checkpoint_path is not None:
-        ckpt_p = Path(checkpoint_path)
-        if ckpt_p.exists():
-            print(f"--> Loading trained model weights from: {ckpt_p}")
-            try:
-                ckpt = torch.load(ckpt_p, map_location=device, weights_only=False)
-            except TypeError:
-                ckpt = torch.load(ckpt_p, map_location=device)
-            loaded_classes = _load_weights(ckpt)
-            if loaded_classes:
-                classes = loaded_classes
-            model.eval()
-            return model, classes
-
-    # Default checkpoint location check
-    default_ckpt = PROJECT_ROOT / "checkpoints" / "M7" / "best_model.pth"
-    if not default_ckpt.exists():
-        default_ckpt = PROJECT_ROOT / "checkpoints" / "M7" / "best_model.pt"
-    if default_ckpt.exists():
-        print(f"--> Found default checkpoint at: {default_ckpt}")
-        try:
-            ckpt = torch.load(default_ckpt, map_location=device, weights_only=False)
-        except TypeError:
-            ckpt = torch.load(default_ckpt, map_location=device)
-        loaded_classes = _load_weights(ckpt)
+        loaded_classes = ckpt_dict.get("classes", None)
         if loaded_classes:
             classes = loaded_classes
-        model.eval()
-        return model, classes
 
-    print("[!] No pre-trained checkpoint found; using model in initialization mode for visual validation.")
     model.eval()
     return model, classes
 

@@ -26,9 +26,9 @@ def plot_learning_curves(history: List[Dict], output_dir: Path) -> None:
     plt.figure(figsize=(9, 5))
     plt.plot(epochs, [h["train_loss"] for h in history], "b-o", label="Train Loss", linewidth=2, markersize=4)
     plt.plot(epochs, [h["val_loss"] for h in history], "r--s", label="Validation Loss", linewidth=2, markersize=4)
-    plt.title("HOI-BiLSTM Training & Validation Loss Across Epochs", fontsize=14, pad=12)
+    plt.title("Multimodal CMAT-HOI Training & Validation Loss Across Epochs", fontsize=14, pad=12)
     plt.xlabel("Epoch", fontsize=12)
-    plt.ylabel("Loss (Cross-Entropy)", fontsize=12)
+    plt.ylabel("Loss (Focal Loss with Smoothing)", fontsize=12)
     plt.grid(True, linestyle="--", alpha=0.6)
     plt.legend(fontsize=11)
     plt.tight_layout()
@@ -46,7 +46,7 @@ def plot_learning_curves(history: List[Dict], output_dir: Path) -> None:
     if any(val_top5_vals):
         plt.plot(epochs, val_top5_vals, "m--d", label="Validation Top-5 Acc", linewidth=2, markersize=4)
 
-    plt.title("HOI-BiLSTM Top-1 & Top-5 Accuracy Curves", fontsize=14, pad=12)
+    plt.title("CMAT-HOI Top-1 & Top-5 Validation Accuracy Progression", fontsize=14, pad=12)
     plt.xlabel("Epoch", fontsize=12)
     plt.ylabel("Accuracy (%)", fontsize=12)
     plt.grid(True, linestyle="--", alpha=0.6)
@@ -147,5 +147,50 @@ def plot_temporal_attention_samples(
     plt.legend(fontsize=10)
     plt.tight_layout()
     plt.savefig(output_dir / "temporal_attention_weights.png", dpi=300)
+    plt.close()
+
+
+def plot_f1_score_distribution(report: Dict, output_dir: Path) -> None:
+    """Plots precision, recall, and F1 distribution across all 82 categories."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    f1_scores = [v["f1-score"] for k, v in report.items() if isinstance(v, dict) and "f1-score" in v]
+    precisions = [v["precision"] for k, v in report.items() if isinstance(v, dict) and "precision" in v]
+    recalls = [v["recall"] for k, v in report.items() if isinstance(v, dict) and "recall" in v]
+
+    plt.figure(figsize=(10, 5))
+    bins = np.linspace(0, 1.0, 21)
+    plt.hist(f1_scores, bins=bins, alpha=0.7, color="#2563EB", label=f"F1-Score (Mean: {np.mean(f1_scores):.2f})", edgecolor="black")
+    plt.hist(precisions, bins=bins, alpha=0.5, color="#059669", label=f"Precision (Mean: {np.mean(precisions):.2f})", edgecolor="black")
+    plt.hist(recalls, bins=bins, alpha=0.5, color="#D97706", label=f"Recall (Mean: {np.mean(recalls):.2f})", edgecolor="black")
+
+    plt.title("Statistical Distribution of Precision, Recall, and F1 Across 82 Sports Classes", fontsize=13, pad=12)
+    plt.xlabel("Score (0.0 to 1.0)", fontsize=11)
+    plt.ylabel("Number of Action Categories", fontsize=11)
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.legend(fontsize=10)
+    plt.tight_layout()
+    plt.savefig(output_dir / "metric_distribution_82.png", dpi=300)
+    plt.close()
+
+
+def plot_stream_ablation_summary(ablation_results: Dict[str, float], output_dir: Path) -> None:
+    """Plots the multimodal stream ablation study comparing M1 through M7."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    modes = list(ablation_results.keys())
+    scores = list(ablation_results.values())
+
+    plt.figure(figsize=(10, 5))
+    bars = plt.bar(modes, scores, color=["#94A3B8", "#94A3B8", "#94A3B8", "#60A5FA", "#38BDF8", "#34D399", "#2563EB"], edgecolor="black")
+    plt.title("Multimodal Stream Contribution & Ablation Benchmark (M1 to M7)", fontsize=14, pad=12)
+    plt.xlabel("Model Configuration", fontsize=11)
+    plt.ylabel("Top-1 Recognition Accuracy (%)", fontsize=11)
+    plt.ylim(0, 105)
+    plt.grid(axis="y", linestyle="--", alpha=0.6)
+
+    for bar, score in zip(bars, scores):
+        plt.text(bar.get_x() + bar.get_width() / 2, score + 1.5, f"{score:.1f}%", ha="center", fontsize=10, fontweight="bold")
+
+    plt.tight_layout()
+    plt.savefig(output_dir / "multimodal_ablation_comparison.png", dpi=300)
     plt.close()
 
