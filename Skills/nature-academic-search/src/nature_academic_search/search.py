@@ -1,0 +1,546 @@
+"""Multi-source search coordination and record deduplication."""
+
+from __future__ import annotations
+
+import asyncio
+import re
+import unicodedata
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
+from typing import Any
+from uuid import uuid4
+
+from .discovery import (
+    analyze_query,
+    apply_post_filters,
+    normalize_filters,
+    rank_records,
+    translate_filters,
+)
+from .provenance import result_fingerprint, stable_record_id
+from .sources.registry import (
+    DEFAULT_PUBLICATION_SOURCES,
+    SOURCE_ENTITY_TYPES,
+    TRIAL_SOURCES,
+    build_adapters,
+    source_capabilities,
+    source_type_filter_dialect,
+)
+
+IDENTIFIER_FIELDS = (
+    "doi",
+    "pmid",
+    "pmcid",
+    "arxiv_id",
+    "openalex_id",
+    "semantic_scholar_id",
+    "nct_id",
+)
+
+
+def deduplicate_records(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    groups: list[dict[str, Any] | None] = []
+    key_to_group: dict[tuple[str, str], int] = {}
+
+    for raw_record in records:
+        record = _prepare_record(raw_record)
+        keys = _identifier_keys(record)
+        matches = sorted({key_to_group[key] for key in keys if key in key_to_group})
+
+        if not matches:
+            target = len(groups)
+            groups.append(record)
+        else:
+            target = matches[0]
+            for duplicate_group in matches[1:]:
+                duplicate = groups[duplicate_group]
+                if duplicate is not None:
+                    _merge_record(groups[target], duplicate)  # type: ignore[arg-type]
+                    groups[duplicate_group] = None
+                    for key, group_index in tuple(key_to_group.items()):
+                        if group_index == duplicate_group:
+                            del key_to_group[key]
+            _merge_record(groups[target], record)  # type: ignore[arg-type]
+
+        # Conflicting IDs are audit evidence, not keys for linking other records.
+        current = groups[target]
+        if current is not None:
+            for key in _identifier_keys(current):
+                key_to_group[key] = target
+
+    # Resolve identifier links first, then check each title bucket as a whole.
+    # A record without an ID must not bridge two incompatible records.
+    title_groups: dict[tuple[str, str], list[tuple[int, dict[str, Any]]]] = {}
+    for index, group in enumerate(groups):
+        if group is None or group["entity_type"] != "publication":
+            continue
+        title = _normalize_title(str(group.get("title") or ""))
+        year = group.get("year")
+        if title and year not in (None, ""):
+            title_groups.setdefault((title, str(year)), []).append((index, group))
+    for members in title_groups.values():
+        if len(members) < 2 or any(
+            len({group[field] for _, group in members if group.get(field)}) > 1
+            for field in IDENTIFIER_FIELDS[:-1]
+        ):
+            continue
+        target_group = members[0][1]
+        for duplicate_index, duplicate_record in members[1:]:
+            _merge_record(target_group, duplicate_record)
+            groups[duplicate_index] = None
+
+    return [record for record in groups if record is not None]
+
+
+async def search_all(
+    query: str,
+    sources: Sequence[str] | None,
+    rows: int,
+    *,
+    filter_type: str | None = None,
+    adapters: Mapping[str, Any] | None = None,
+    enrichers: Sequence[str] | None = None,
+    entity_type: str = "publication",
+    filters: Mapping[str, Any] | None = None,
+    ranking: str | None = None,
+) -> dict[str, Any]:
+    started_at = _utc_timestamp()
+    run_id = str(uuid4())
+    if entity_type not in {"publication", "trial"}:
+        raise ValueError(f"Unsupported entity_type: {entity_type}")
+    defaults = DEFAULT_PUBLICATION_SOURCES if entity_type == "publication" else TRIAL_SOURCES
+    selected_sources = list(defaults if sources is None else sources)
+    if not selected_sources:
+        raise ValueError("At least one source is required")
+    incompatible = [
+        source
+        for source in selected_sources
+        if SOURCE_ENTITY_TYPES.get(source) != entity_type
+    ]
+    if incompatible:
+        raise ValueError(
+            f"Sources are incompatible with entity_type={entity_type}: {incompatible}"
+        )
+    selected_enrichers = list(enrichers or [])
+    normalized_filters = normalize_filters(filters)
+    if ranking is not None and ranking not in {"relevance", "none"}:
+        raise ValueError("ranking must be 'relevance' or 'none'")
+    discovery_enabled = bool(normalized_filters) or ranking is not None
+    if entity_type != "publication" and selected_enrichers:
+        raise ValueError("Trial records do not support publication enrichment")
+    needed_sources = list(dict.fromkeys([*selected_sources, *selected_enrichers]))
+    selected_adapters = dict(adapters or build_adapters(needed_sources))
+    missing = [source for source in needed_sources if source not in selected_adapters]
+    if missing:
+        raise ValueError(f"Missing adapters for sources: {missing}")
+    source_translation = (
+        {source: translate_filters(source, normalized_filters) for source in selected_sources}
+        if discovery_enabled
+        else {}
+    )
+    tasks = [
+        asyncio.create_task(
+            asyncio.to_thread(
+                _search_one,
+                source,
+                selected_adapters[source],
+                query,
+                rows,
+                filter_type,
+                source_translation.get(source),
+                discovery_enabled,
+            )
+        )
+        for source in selected_sources
+    ]
+    outcomes = await asyncio.gather(*tasks, return_exceptions=True)
+
+    raw_records: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    succeeded: list[str] = []
+    source_meta: dict[str, Any] = {}
+    total = 0
+    for source, outcome in zip(selected_sources, outcomes):
+        if isinstance(outcome, BaseException):
+            errors.append(_source_error(source, outcome))
+            continue
+        succeeded.append(source)
+        total += int(outcome.get("total", 0))
+        if outcome.get("source_meta"):
+            source_meta[source] = outcome["source_meta"]
+        for result in outcome.get("results", []):
+            record = dict(result)
+            record.setdefault("source", source)
+            raw_records.append(record)
+
+    results = deduplicate_records(raw_records)
+    enrichment = await enrich_records(
+        results,
+        selected_enrichers,
+        adapters=selected_adapters,
+        limit=rows,
+    )
+    results = enrichment["results"]
+    errors.extend(enrichment["errors"])
+    filtered_out_count = 0
+    if discovery_enabled and normalized_filters:
+        before_filter_count = len(results)
+        date_filtered_sources = {
+            source
+            for source, translation in source_translation.items()
+            if source in succeeded and {"date_from", "date_to"}.intersection(translation["applied"])
+        }
+        results = apply_post_filters(
+            results, normalized_filters, date_filtered_sources=date_filtered_sources
+        )
+        filtered_out_count = before_filter_count - len(results)
+    for record in results:
+        record["record_id"] = stable_record_id(record)
+    ranking_mode = ranking or ("relevance" if normalized_filters else "none")
+    results, ranking_metadata = rank_records(results, query, mode=ranking_mode)
+    queried = list(
+        dict.fromkeys([*selected_sources, *enrichment["sources_queried"]])
+    )
+    succeeded = list(
+        dict.fromkeys([*succeeded, *enrichment["sources_succeeded"]])
+    )
+    completed_at = _utc_timestamp()
+    search_run = {
+        "schema_version": "1",
+        "run_id": run_id,
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "query": query,
+        "entity_type": entity_type,
+        "requested_sources": selected_sources,
+        "enrichers": selected_enrichers,
+        "rows": rows,
+        "raw_result_count": len(raw_records),
+        "result_count": len(results),
+        "filtered_out_count": filtered_out_count,
+        "filters": normalized_filters,
+        "ranking": ranking_metadata,
+        "query_analysis": analyze_query(query),
+        "source_translation": source_translation,
+        "result_fingerprint": result_fingerprint(
+            [str(record["record_id"]) for record in results]
+        ),
+        "source_status": {
+            "queried": queried,
+            "succeeded": succeeded,
+            "skipped": enrichment["skipped"],
+            "failed": list(dict.fromkeys(error["source"] for error in errors)),
+        },
+    }
+    return {
+        "total": total,
+        "entity_type": entity_type,
+        "sources_queried": queried,
+        "sources_succeeded": succeeded,
+        "sources_skipped": enrichment["skipped"],
+        "enrichment_sources": selected_enrichers,
+        "enrichment_sources_queried": enrichment["sources_queried"],
+        "enrichment_sources_succeeded": enrichment["sources_succeeded"],
+        "source_meta": source_meta,
+        "raw_result_count": len(raw_records),
+        "result_count": len(results),
+        "filtered_out_count": filtered_out_count,
+        "results": results,
+        "errors": errors or None,
+        "search_run": search_run,
+    }
+
+
+async def enrich_records(
+    records: Sequence[Mapping[str, Any]],
+    enrichers: Sequence[str],
+    *,
+    adapters: Mapping[str, Any] | None = None,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Enrich a bounded set of records using strong identifiers only."""
+    results = [_prepare_record(record) for record in records]
+    if not enrichers:
+        return {
+            "results": results,
+            "errors": [],
+            "skipped": [],
+            "sources_queried": [],
+            "sources_succeeded": [],
+        }
+
+    selected_adapters = dict(adapters or build_adapters(list(enrichers)))
+    errors: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    queried: list[str] = []
+    succeeded: list[str] = []
+    upper_bound = len(results) if limit is None else min(max(limit, 0), len(results))
+
+    for source in enrichers:
+        if "enrich" not in source_capabilities(source):
+            raise ValueError(f"Source does not support enrichment: {source}")
+        adapter = selected_adapters[source]
+        for index, record in enumerate(results[:upper_bound]):
+            identifier = _strong_identifier(record)
+            if identifier is None:
+                skipped.append(
+                    {
+                        "source": source,
+                        "record_index": index,
+                        "reason": "missing strong identifier",
+                    }
+                )
+                continue
+            if source not in queried:
+                queried.append(source)
+            try:
+                incoming = await asyncio.to_thread(adapter.get_by_id, identifier)
+            except Exception as exc:
+                error = _source_error(source, exc)
+                error["record_index"] = index
+                errors.append(error)
+                continue
+            if source not in succeeded:
+                succeeded.append(source)
+            _merge_record(record, _prepare_record(incoming))
+
+    return {
+        "results": results,
+        "errors": errors,
+        "skipped": skipped,
+        "sources_queried": queried,
+        "sources_succeeded": succeeded,
+    }
+
+
+def _search_one(
+    source: str,
+    adapter: Any,
+    query: str,
+    rows: int,
+    filter_type: str | None,
+    translated: Mapping[str, Any] | None = None,
+    discovery_enabled: bool = False,
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {}
+    query_text = query
+    if translated:
+        kwargs.update(translated.get("kwargs") or {})
+        suffix = str(translated.get("query") or "").strip()
+        if suffix:
+            query_text = f"({query}) AND {suffix}"
+    if (
+        filter_type
+        and "type_filter" in source_capabilities(source)
+        and source_type_filter_dialect(source) == "crossref"
+        and (
+            not discovery_enabled
+            or "document_type" not in (translated.get("kwargs") if translated else {})
+        )
+    ):
+        kwargs["filter_type"] = filter_type
+    return adapter.search(query_text, rows=rows, **kwargs)
+
+
+def _prepare_record(raw_record: Mapping[str, Any]) -> dict[str, Any]:
+    record = dict(raw_record)
+    record.setdefault("entity_type", "publication")
+    if record.get("doi"):
+        record["doi"] = _normalize_doi(str(record["doi"]))
+    if record.get("pmid") is not None:
+        record["pmid"] = str(record["pmid"]).strip()
+    if record.get("arxiv_id"):
+        record["arxiv_id"] = _normalize_arxiv_id(str(record["arxiv_id"]))
+    if record.get("pmcid"):
+        record["pmcid"] = str(record["pmcid"]).strip().upper()
+    if record.get("openalex_id"):
+        record["openalex_id"] = str(record["openalex_id"]).strip().upper()
+    if record.get("semantic_scholar_id"):
+        record["semantic_scholar_id"] = str(record["semantic_scholar_id"]).strip()
+    if record.get("nct_id"):
+        record["nct_id"] = str(record["nct_id"]).strip().upper()
+
+    source_id, source_url = _legacy_source_locator(record)
+    if source_id and not record.get("source_id"):
+        record["source_id"] = source_id
+    if source_url and not record.get("source_url"):
+        record["source_url"] = source_url
+
+    sources = list(record.get("sources") or [])
+    if record.get("source") and record["source"] not in sources:
+        sources.append(record["source"])
+    record["sources"] = sources
+    record["source_records"] = _source_records(record)
+    record.setdefault("conflicts", [])
+
+    source = str(record.get("citation_count_source") or record.get("source") or "")
+    counts = dict(record.get("citation_counts") or {})
+    if record.get("citation_count") is not None and source:
+        counts.setdefault(source, int(record["citation_count"] or 0))
+        record["citation_count_source"] = source
+    record["citation_counts"] = counts
+    return record
+
+
+def _identifier_keys(record: Mapping[str, Any]) -> list[tuple[str, str]]:
+    keys: list[tuple[str, str]] = []
+    entity_type = str(record.get("entity_type") or "publication")
+    identifier_fields = ("nct_id",) if entity_type == "trial" else IDENTIFIER_FIELDS[:-1]
+    for field in identifier_fields:
+        value = record.get(field)
+        if value:
+            keys.append((f"{entity_type}:{field}", str(value)))
+
+    return keys
+
+
+def _merge_record(target: dict[str, Any], incoming: Mapping[str, Any]) -> None:
+    for source in incoming.get("sources") or []:
+        if source not in target["sources"]:
+            target["sources"].append(source)
+
+    for source_record in incoming.get("source_records") or []:
+        if source_record not in target["source_records"]:
+            target["source_records"].append(source_record)
+    for conflict in incoming.get("conflicts") or []:
+        if conflict not in target["conflicts"]:
+            target["conflicts"].append(conflict)
+
+    target_counts = target.setdefault("citation_counts", {})
+    target_counts.update(incoming.get("citation_counts") or {})
+    incoming_source = str(
+        incoming.get("citation_count_source") or incoming.get("source") or ""
+    )
+    incoming_count = incoming.get("citation_count") or 0
+    if incoming.get("citation_count") is not None and incoming_source:
+        target_counts[incoming_source] = int(incoming_count)
+
+    target_count = target.get("citation_count") or 0
+    if incoming_count > target_count:
+        target["citation_count"] = incoming_count
+        target["citation_count_source"] = incoming_source
+
+    for field in IDENTIFIER_FIELDS:
+        kept = target.get(field)
+        value = incoming.get(field)
+        if kept not in (None, "") and value not in (None, "") and kept != value:
+            conflict = {
+                "field": field,
+                "kept": kept,
+                "incoming": value,
+                "source": incoming.get("source"),
+            }
+            if conflict not in target["conflicts"]:
+                target["conflicts"].append(conflict)
+
+    for key, value in incoming.items():
+        if key in {
+            "source",
+            "sources",
+            "source_records",
+            "citation_count",
+            "citation_count_source",
+            "citation_counts",
+            "conflicts",
+        }:
+            continue
+        existing = target.get(key)
+        if value not in (None, "", [], {}) and existing in (None, "", [], {}):
+            target[key] = value
+        elif (
+            key == "publication_date"
+            and isinstance(existing, str)
+            and len(existing) in {4, 7}
+            and isinstance(value, str)
+            and value.startswith(f"{existing}-")
+        ):
+            target[key] = value
+
+
+def _normalize_doi(value: str) -> str:
+    normalized = value.strip().lower()
+    normalized = re.sub(r"^(?:doi:\s*|https?://(?:dx\.)?doi\.org/)", "", normalized)
+    return normalized.rstrip(". ")
+
+
+def _normalize_arxiv_id(value: str) -> str:
+    normalized = value.strip()
+    normalized = re.sub(r"^https?://arxiv\.org/(?:abs|pdf)/", "", normalized)
+    normalized = normalized.removesuffix(".pdf")
+    return re.sub(r"v\d+$", "", normalized)
+
+
+def _normalize_title(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    characters = (
+        char if char.isalnum() or unicodedata.category(char).startswith("M") else " "
+        for char in normalized
+    )
+    return " ".join("".join(characters).split())
+
+
+def _source_records(record: Mapping[str, Any]) -> list[dict[str, Any]]:
+    records = [
+        dict(item)
+        for item in record.get("source_records") or []
+        if isinstance(item, Mapping)
+    ]
+    source = record.get("source")
+    source_id = record.get("source_id")
+    source_url = record.get("source_url")
+    if source and (source_id or source_url):
+        current = {
+            "source": source,
+            "source_id": source_id or "",
+            "source_url": source_url or "",
+        }
+        if current not in records:
+            records.append(current)
+    return records
+
+
+def _legacy_source_locator(record: Mapping[str, Any]) -> tuple[str, str]:
+    source = record.get("source")
+    if source == "crossref" and record.get("doi"):
+        identifier = str(record["doi"])
+        return identifier, f"https://doi.org/{identifier}"
+    if source == "pubmed" and record.get("pmid"):
+        identifier = str(record["pmid"])
+        return identifier, f"https://pubmed.ncbi.nlm.nih.gov/{identifier}/"
+    if source == "arxiv" and record.get("arxiv_id"):
+        identifier = str(record["arxiv_id"])
+        return identifier, f"https://arxiv.org/abs/{identifier}"
+    return "", ""
+
+
+def _source_error(source: str, error: BaseException) -> dict[str, Any]:
+    message = str(error)
+    status_match = re.search(r"HTTP (\d{3})", message)
+    status = int(status_match.group(1)) if status_match else None
+    retryable = status in {429, 502, 503, 504} or "timed out" in message.casefold()
+    kind = "rate_limited" if status == 429 else "source_error"
+    payload: dict[str, Any] = {
+        "source": source,
+        "error": message,
+        "kind": kind,
+        "retryable": retryable,
+    }
+    if status is not None:
+        payload["status"] = status
+    return payload
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _strong_identifier(record: Mapping[str, Any]) -> str | None:
+    if record.get("doi"):
+        return f"DOI:{record['doi']}"
+    if record.get("arxiv_id"):
+        return f"ARXIV:{record['arxiv_id']}"
+    if record.get("pmid"):
+        return f"PMID:{record['pmid']}"
+    if record.get("semantic_scholar_id"):
+        return str(record["semantic_scholar_id"])
+    return None

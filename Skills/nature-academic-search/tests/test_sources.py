@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from nature_academic_search.sources import CrossRefSource
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_sources_import_without_repository_working_directory(tmp_path: Path) -> None:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(ROOT / "src")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from nature_academic_search.sources import "
+                "ArxivSource, ClinicalTrialsSource, CrossRefSource, EuropePmcSource, "
+                "OpenAlexSource, PubMedSource, SemanticScholarSource; "
+                "assert all((ArxivSource, ClinicalTrialsSource, CrossRefSource, "
+                "EuropePmcSource, OpenAlexSource, PubMedSource, "
+                "SemanticScholarSource))"
+            ),
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_logging_setup_is_idempotent() -> None:
+    sys.path.insert(0, str(ROOT / "src"))
+    try:
+        from nature_academic_search.logging import JSONFormatter, setup_logging
+
+        logger = setup_logging()
+        first_handlers = tuple(logger.handlers)
+        same_logger = setup_logging()
+    finally:
+        sys.path.pop(0)
+
+    assert same_logger is logger
+    assert tuple(same_logger.handlers) == first_handlers
+    assert sum(isinstance(handler.formatter, JSONFormatter) for handler in first_handlers) == 1
+
+
+def test_crossref_keeps_print_year_and_search_publication_date() -> None:
+    item = {
+        "published": {"date-parts": [[2023, 11, 30]]},
+        "published-online": {"date-parts": [[2023, 11, 30]]},
+        "published-print": {"date-parts": [[2024, 2]]},
+    }
+
+    record = CrossRefSource()._normalize_search_item(item)
+
+    assert record["year"] == 2024
+    assert record["publication_date"] == "2023-11-30"

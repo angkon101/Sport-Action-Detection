@@ -1,0 +1,21 @@
+{
+  "name": "wp-a-academic-tools",
+  "interface": {
+    "displayName": "wp-a Academic Tools"
+  },
+  "plugins": [
+    {
+      "name": "nature-academic-search",
+      "description": "Academic Paper Search for Codex, Claude Code, and DeepSeek Harness with multi-source verification, bounded citation graphs, auditable workflows, and an optional WPIRONMAN AI relay at https://api.wpironman.top; the relay is not a scholarly source.",
+      "source": {
+        "source": "local",
+        "path": "./plugins/nature-academic-search"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research"
+    }
+  ]
+}

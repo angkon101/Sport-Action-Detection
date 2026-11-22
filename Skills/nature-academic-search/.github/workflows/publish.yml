@@ -1,0 +1,73 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Package index to publish to
+        required: true
+        type: choice
+        options:
+          - testpypi
+          - pypi
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.13.9"
+      - name: Install release tools
+        run: uv sync --locked --extra test --python 3.13
+      - name: Lint
+        run: uv run --no-sync python -m ruff check src tests scripts/check_wheel.py
+      - name: Test package and release metadata
+        run: uv run --no-sync python -m pytest
+      - name: Test legacy MCP contract
+        run: uv run --no-sync python -m pytest mcp-server/tests
+      - name: Build distributions
+        run: uv run --no-sync python -m build
+      - name: Validate distributions
+        run: uv run --no-sync twine check dist/*
+      - name: Check installed wheel
+        run: uv run --no-sync python scripts/check_wheel.py dist/*.whl
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'release' && 'pypi' || inputs.repository }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python-distributions
+          path: dist/
+      - name: Publish distributions with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: ${{ inputs.repository == 'testpypi' && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}
+          packages-dir: dist/
+          attestations: true
+      - name: Attach distributions to GitHub release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload "${{ github.event.release.tag_name }}" dist/* --clobber
+          --repo "${{ github.repository }}"
