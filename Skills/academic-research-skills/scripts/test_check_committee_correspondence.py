@@ -1,0 +1,449 @@
+#!/usr/bin/env python3
+"""Schema, mutation, and end-to-end tests for #668 correspondence accounting."""
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+from jsonschema import Draft202012Validator, FormatChecker
+
+from check_committee_correspondence import (
+    BOUNDARY_LINE,
+    DEFAULT_SCHEMA,
+    validate_bundle,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+FIXTURE = REPO_ROOT / "scripts" / "fixtures" / "committee_correspondence" / "16fd83f6aec7"
+TRACKER_NAME = "concern_tracker.json"
+CHECKER = REPO_ROOT / "scripts" / "check_committee_correspondence.py"
+
+
+def _load(path: Path) -> dict[str, object]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write(path: Path, value: dict[str, object]) -> None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _bundle(tmp_path: Path) -> tuple[Path, dict[str, object]]:
+    target = tmp_path / FIXTURE.name
+    shutil.copytree(FIXTURE, target)
+    tracker_path = target / TRACKER_NAME
+    return tracker_path, _load(tracker_path)
+
+
+def _save_skeleton(tracker_path: Path, tracker: dict[str, object], text: str) -> None:
+    skeleton_path = tracker_path.parent / "response_skeleton.md"
+    skeleton_path.write_text(text, encoding="utf-8")
+    tracker["response_skeleton"]["sha256"] = hashlib.sha256(text.encode()).hexdigest()  # type: ignore[index]
+    _write(tracker_path, tracker)
+
+
+def _schema() -> Draft202012Validator:
+    schema = _load(DEFAULT_SCHEMA)
+    Draft202012Validator.check_schema(schema)
+    return Draft202012Validator(schema, format_checker=FormatChecker())
+
+
+def test_fixture_schema_and_bundle_pass() -> None:
+    tracker = _load(FIXTURE / TRACKER_NAME)
+    _schema().validate(tracker)
+    assert validate_bundle(FIXTURE / TRACKER_NAME) == []
+
+
+def test_revision_coach_entrypoint_and_protocol_are_wired() -> None:
+    requirements = {
+        "academic-paper/agents/revision_coach_agent.md": (
+            "Committee-Correspondence Variant (#668)",
+            "references/committee_correspondence_protocol.md",
+            "never emits",
+        ),
+        "academic-paper/SKILL.md": (
+            "Committee-correspondence routing:",
+            "separate #668 concern tracker",
+        ),
+        "commands/ars-revision-coach.md": (
+            "committee-correspondence variant",
+            "Never infer committee authority from tone",
+        ),
+        "academic-paper/references/committee_correspondence_protocol.md": (
+            "source_letter.txt",
+            "committee-correspondence/1.0",
+            BOUNDARY_LINE,
+        ),
+    }
+    for relative, needles in requirements.items():
+        text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+        for needle in needles:
+            assert needle in text, f"{relative}: missing {needle!r}"
+
+
+
+_PEER_REVIEW_EXCLUSION = (
+    "Journal or conference reviewers, editors, area chairs, and program committees are "
+    "peer review, {extra}even when the user names the venue or the venue calls the role "
+    "a committee (#854)."
+)
+
+
+@pytest.mark.parametrize("relative, extra", [
+    ("academic-paper/agents/revision_coach_agent.md", "not a committee for this variant, "),
+    ("academic-paper/SKILL.md", "not a committee for this variant, "),
+    ("academic-paper/references/committee_correspondence_protocol.md", ""),
+])
+def test_peer_review_exclusion_sentence_is_whole(relative: str, extra: str) -> None:
+    # The sentence wraps differently in each file, so compare with whitespace collapsed.
+    text = " ".join((REPO_ROOT / relative).read_text(encoding="utf-8").split())
+    assert _PEER_REVIEW_EXCLUSION.format(extra=extra) in text
+
+
+_SCOPE_SENTENCES = (
+    "This variant covers only a letter or comments from a research ethics or human-subjects protection review of research with human participants, their data, or their biological samples, made by a body with formal review authority over the study, such as a research ethics committee, an institutional review board (IRB), or a human research ethics office. The kind of review decides, not the topic of each comment: such a review's comments on statistics, data access, or safety monitoring stay in the variant. A formal review that such a body holds to decide whether the study needs its review also counts. A mock or advisory review before submission does not count. A review held for another purpose (scientific merit, statistics, data access, or safety monitoring), a thesis or dissertation committee, and a grant or funding panel take normal `revision-coach` (#907).",
+    "Before taking this branch, start the reply with the user's own words that name the body, in quotation marks. If the user's own turns do not name it (for example, the name appears only in the pasted letter), ask the user which body sent the comments and in what review, and quote that answer; a reply of only yes or no does not name the body, so ask again (#907).",
+)
+
+
+_SCOPE_HOME = "academic-paper/references/committee_correspondence_protocol.md"
+_SCOPE_POINTER = (
+    "The Activation gate in `committee_correspondence_protocol.md` decides which comments this variant covers and what to quote from the user before taking it; comments that the gate excludes take normal `revision-coach` (#907)."
+)
+_SCOPE_POINTER_FILES = [
+    ".claude/CLAUDE.md",
+    "academic-paper/agents/revision_coach_agent.md",
+    "academic-paper/SKILL.md",
+    "academic-paper/references/mode_selection_guide.md",
+    "commands/ars-revision-coach.md",
+]
+
+
+def _flat(relative: str) -> str:
+    return " ".join((REPO_ROOT / relative).read_text(encoding="utf-8").split())
+
+
+@pytest.mark.parametrize("sentence", _SCOPE_SENTENCES)
+def test_scope_and_quote_sentences_are_whole_in_the_gate(sentence: str) -> None:
+    # #907: the protocol's Activation gate is the one full statement of the scope
+    # and of the quote rule; the check reads only that section.
+    text = (REPO_ROOT / _SCOPE_HOME).read_text(encoding="utf-8")
+    start = text.index("\n## Activation gate\n")
+    end = text.index("\n## ", start + 1)
+    gate = " ".join(text[start:end].split())
+    rest = " ".join((text[:start] + text[end:]).split())
+    assert sentence in gate
+    assert sentence[:60] not in rest
+
+
+@pytest.mark.parametrize("relative", _SCOPE_POINTER_FILES)
+def test_entry_points_point_to_the_gate(relative: str) -> None:
+    # #907: the other entry points carry a pointer, not a copy, so the copies
+    # cannot drift from the gate.
+    text = _flat(relative)
+    assert _SCOPE_POINTER in text
+    for sentence in _SCOPE_SENTENCES:
+        assert sentence[:60] not in text
+
+
+def _requests(listed: str) -> list[str]:
+    """Split "a, b, or c" into its requests."""
+    return [item for item in re.split(r",\s*(?:or\s+)?|\s+or\s+", listed.strip()) if item]
+
+
+def test_mode_guide_tree_names_each_request_the_gate_accepts() -> None:
+    # #1123 point 5: the gate takes tracking, response preparation, or resubmission
+    # organization, and the decision tree's committee branch has to say the same.
+    text = (REPO_ROOT / _SCOPE_HOME).read_text(encoding="utf-8")
+    start = text.index("\n## Activation gate\n")
+    end = text.index("\n## ", start + 1)
+    gate = " ".join(text[start:end].split())
+    asked = re.search(r"\basks for (.+?)\.(?:\s|$)", gate)
+    assert asked, "the Activation gate no longer lists the requests it accepts"
+
+    tree = (REPO_ROOT / "academic-paper/references/mode_selection_guide.md").read_text(encoding="utf-8").splitlines()
+    node = next((i for i, line in enumerate(tree) if re.match(r"[├└]── .*research ethics review", line)), None)
+    assert node is not None, "research-ethics node missing from the decision tree"
+    children = []
+    for line in tree[node + 1 :]:
+        if not re.match(r"[│ ]{4}[ │]*[├└]──", line):
+            break
+        children.append(line)
+    # every routed line under the node (and the node itself) counts, so a second route cannot hide
+    routed = [line for line in [tree[node], *children] if "→" in line]
+    assert len(routed) == 1, f"expected one routed line under the research-ethics node, found {routed}"
+    branch = re.search(r"[├└]──\s*(?:Need\s+)?(.+?)\s*─*\s*→\s*(.+?)\s*$", routed[0])
+    assert branch, f"committee line is not a tree branch: {routed[0]!r}"
+    assert branch[2] == "revision-coach committee-correspondence variant"
+
+    expected = ["tracking", "response preparation", "resubmission organization"]
+    assert _requests(asked[1]) == expected
+    assert _requests(branch[1]) == expected
+
+
+_GRADER = REPO_ROOT / "plugin-evals/03-iclr-rebuttal-en/graders/no-committee-branch.md"
+_GRADER_FLAGS = [
+    "## 1. Source preservation",  # heading shapes of the two #853 misroutes
+    "# 00 — Preserved source",
+    "**Concern tracker**",
+    "<!-- concern:CC-001 -->",
+    "### Concern CC-001",
+    "> **Human-subjects boundary:** This output does not authorize recruitment.",
+    "**Status:** drafting aid — no concern is asserted resolved.",
+    "Introduction\r## Concern tracker",
+]
+_GRADER_PASSES = [
+    "I will not use committee-correspondence/1.0.",
+    "**Routing:** These are peer reviews; no concern tracker is needed.",
+    "## No concern tracker needed",
+    "**Concern tracker:** not applicable, these are peer reviews.",
+    "These are ICLR peer reviews. No **Human-subjects boundary:** footer is needed.",
+    "I will not add concern:CC-001 markers or ### Concern CC-001 headings.",
+    'There is no "Status: drafting aid — no concern is asserted resolved" line here.',
+    "I did not create concern_tracker.json or source_letter.txt.",
+    "So I will not create `committee_correspondence/0123456789ab/concern_tracker.json`.",
+    "## Revision Roadmap",
+]
+
+
+def _grader_matches(answers: list[str]) -> list[bool]:
+    """Run the grader as the eval runner does: a JavaScript RegExp with its flags."""
+    node = shutil.which("node")
+    if node is None:
+        if os.environ.get("CI"):
+            pytest.fail("node is required to run the no-committee-branch grader examples")
+        pytest.skip("node is not installed")
+    front, body = _GRADER.read_text(encoding="utf-8").split("---\n")[1:3]
+    assert "match: not_contains" in front and "target: last_message" in front
+    flags = re.search(r"^flags: (\w+)$", front, re.MULTILINE).group(1)
+    script = ("const [p, f, a] = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+              "const r = new RegExp(p, f);"
+              "process.stdout.write(JSON.stringify(a.map((t) => r.test(t))));")
+    result = subprocess.run([node, "-e", script], input=json.dumps([body.strip(), flags, answers]),
+                            capture_output=True, text=True, check=True)
+    return json.loads(result.stdout)
+
+
+def test_no_committee_branch_grader_flags_the_branch_and_passes_a_refusal() -> None:
+    matched = _grader_matches(_GRADER_FLAGS + _GRADER_PASSES)
+    missed = [a for a, m in zip(_GRADER_FLAGS, matched) if not m]
+    flagged = [a for a, m in zip(_GRADER_PASSES, matched[len(_GRADER_FLAGS):]) if m]
+    assert (missed, flagged) == ([], [])
+
+def test_fixture_proves_compound_multi_label_and_degraded_mode() -> None:
+    tracker = _load(FIXTURE / TRACKER_NAME)
+    first = tracker["concerns"][0]  # type: ignore[index]
+    assert first["action_type"] == ["design", "revise_artifact"]  # type: ignore[index]
+    assert tracker["profile_context"] == {
+        "state": "not_selected",
+        "selected_profile_ids": [],
+        "artifact_resolution_state": "artifact_agnostic",
+    }
+
+
+def test_fixture_has_no_priority_or_severity_field() -> None:
+    encoded = json.dumps(_load(FIXTURE / TRACKER_NAME), sort_keys=True)
+    assert '"priority"' not in encoded
+    assert '"severity"' not in encoded
+
+
+def test_source_segments_cover_every_byte_and_preserve_noncomments() -> None:
+    tracker = _load(FIXTURE / TRACKER_NAME)
+    segments = tracker["source_artifact"]["segments"]  # type: ignore[index]
+    assert segments[0]["byte_start"] == 0  # type: ignore[index]
+    assert segments[-1]["byte_end"] == tracker["source_artifact"]["byte_length"]  # type: ignore[index]
+    assert [item["kind"] for item in segments] == ["non_comment", "comment", "comment", "non_comment"]  # type: ignore[index]
+
+
+def test_dropped_concern_fails_complete_accounting(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"].pop()  # type: ignore[union-attr]
+    _write(path, tracker)
+    assert any("every comment segment" in item for item in validate_bundle(path))
+
+
+def test_duplicated_concern_fails(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"].append(copy.deepcopy(tracker["concerns"][0]))  # type: ignore[index,union-attr]
+    _write(path, tracker)
+    errors = validate_bundle(path)
+    assert any("concern ids must be unique" in item for item in errors)
+
+
+@pytest.mark.parametrize("delta", [-1, 1])
+def test_segment_gap_or_overlap_fails(tmp_path: Path, delta: int) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["source_artifact"]["segments"][1]["byte_start"] += delta  # type: ignore[index]
+    _write(path, tracker)
+    assert any("previous segment end" in item for item in validate_bundle(path))
+
+
+def test_source_mutation_breaks_hash_and_bundle_binding(tmp_path: Path) -> None:
+    path, _ = _bundle(tmp_path)
+    source = path.parent / "source_letter.txt"
+    source.write_text(source.read_text(encoding="utf-8") + "Changed\n", encoding="utf-8")
+    errors = validate_bundle(path)
+    assert any("source_artifact.sha256" in item for item in errors)
+    assert any("bundle directory name" in item for item in errors)
+
+
+def test_verbatim_and_locator_must_match_exact_source(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"][0]["verbatim_text"] = "Paraphrased"  # type: ignore[index]
+    tracker["concerns"][1]["source_locator"]["byte_start"] = 0  # type: ignore[index]
+    _write(path, tracker)
+    errors = validate_bundle(path)
+    assert any("verbatim_text" in item for item in errors)
+    assert any("source locator" in item for item in errors)
+
+
+def test_committee_authority_basis_must_be_exact_source_text(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"][0]["authority_basis"]["exact_text"] = "The committee commands"  # type: ignore[index]
+    _write(path, tracker)
+    assert any("authority basis" in item for item in validate_bundle(path))
+
+
+def test_source_order_reordering_fails(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"].reverse()  # type: ignore[union-attr]
+    _write(path, tracker)
+    assert any("canonical source-comment order" in item for item in validate_bundle(path))
+
+
+def test_incomplete_working_view_fails(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["working_views"][0]["concern_ids"] = ["CC-001"]  # type: ignore[index]
+    _write(path, tracker)
+    assert any("full concern-id permutation" in item for item in validate_bundle(path))
+
+
+def test_missing_response_marker_fails_even_when_hash_is_updated(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    skeleton = (path.parent / "response_skeleton.md").read_text(encoding="utf-8")
+    skeleton = skeleton.replace("<!-- concern:CC-002 -->\n", "", 1)
+    _save_skeleton(path, tracker, skeleton)
+    assert any("markers must cover" in item for item in validate_bundle(path))
+
+
+def test_duplicate_response_marker_fails_even_when_hash_is_updated(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    skeleton = (path.parent / "response_skeleton.md").read_text(encoding="utf-8")
+    skeleton = skeleton.replace("<!-- concern:CC-002 -->", "<!-- concern:CC-001 -->\n<!-- concern:CC-002 -->")
+    _save_skeleton(path, tracker, skeleton)
+    assert any("markers must cover" in item for item in validate_bundle(path))
+
+
+def test_response_resolution_claim_fails_even_when_hash_is_updated(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    skeleton = (path.parent / "response_skeleton.md").read_text(encoding="utf-8")
+    skeleton += "\nConcern CC-001 is resolved.\n"
+    _save_skeleton(path, tracker, skeleton)
+    assert any("resolution/approval/readiness claim" in item for item in validate_bundle(path))
+
+
+def test_missing_665_boundary_fails_even_when_hash_is_updated(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    skeleton = (path.parent / "response_skeleton.md").read_text(encoding="utf-8")
+    skeleton = skeleton.replace(BOUNDARY_LINE, "")
+    _save_skeleton(path, tracker, skeleton)
+    assert any("fixed #665 boundary" in item for item in validate_bundle(path))
+
+
+@pytest.mark.parametrize("field", ["priority", "severity", "estimated_hours"])
+def test_schema_rejects_model_ranking_and_effort_fields(tmp_path: Path, field: str) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"][0][field] = "high"  # type: ignore[index]
+    _write(path, tracker)
+    assert any("Additional properties" in item and field in item for item in validate_bundle(path))
+
+
+def test_no_profile_cannot_emit_profile_derived_fields(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"][0]["profile_requirement_ids"] = ["profile.req-1"]  # type: ignore[index]
+    _write(path, tracker)
+    assert any("require a selected profile" in item for item in validate_bundle(path))
+
+
+def test_selected_profile_enrichment_is_explicit_and_valid(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["profile_context"] = {
+        "state": "selected",
+        "selected_profile_ids": ["synthetic.profile"],
+        "artifact_resolution_state": "profile_enriched",
+    }
+    tracker["concerns"][0]["profile_requirement_ids"] = ["synthetic.req-1"]  # type: ignore[index]
+    tracker["concerns"][0]["affected_artifacts"].append(  # type: ignore[index,union-attr]
+        {"name": "Synthetic profile attachment", "provenance": "profile_resolved"}
+    )
+    _write(path, tracker)
+    assert validate_bundle(path) == []
+
+
+def test_documented_authorization_requires_accounted_comment_pointer(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    status = tracker["human_subjects_status"]  # type: ignore[assignment]
+    status["authorization_status"] = "documented"  # type: ignore[index]
+    status["authorization_source_comment_id"] = "SC-001"  # type: ignore[index]
+    _write(path, tracker)
+    assert any("authorization source" in item for item in validate_bundle(path))
+
+
+def test_invalid_dependency_fails(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"][0]["dependencies"] = [  # type: ignore[index]
+        {"concern_id": "CC-999", "provenance": "author_confirmed"}
+    ]
+    _write(path, tracker)
+    assert any("dependency does not resolve" in item for item in validate_bundle(path))
+
+
+def test_bundle_path_traversal_is_rejected(tmp_path: Path) -> None:
+    path, tracker = _bundle(tmp_path)
+    tracker["source_artifact"]["path"] = "../source_letter.txt"  # type: ignore[index]
+    _write(path, tracker)
+    assert any("normalized relative path" in item for item in validate_bundle(path))
+
+
+def test_bundle_symlink_is_rejected(tmp_path: Path) -> None:
+    path, _ = _bundle(tmp_path)
+    source = path.parent / "source_letter.txt"
+    real = path.parent / "source_real.txt"
+    source.rename(real)
+    source.symlink_to(real.name)
+    assert any("cannot traverse a symlink" in item for item in validate_bundle(path))
+
+
+def test_duplicate_json_key_is_rejected(tmp_path: Path) -> None:
+    path, _ = _bundle(tmp_path)
+    path.write_text('{"schema_version":"a","schema_version":"b"}', encoding="utf-8")
+    assert any("duplicate JSON key" in item for item in validate_bundle(path))
+
+
+def test_cli_pass_and_fail(tmp_path: Path) -> None:
+    passing = subprocess.run(
+        [sys.executable, str(CHECKER), str(FIXTURE / TRACKER_NAME)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert passing.returncode == 0
+    path, tracker = _bundle(tmp_path)
+    tracker["concerns"].pop()  # type: ignore[union-attr]
+    _write(path, tracker)
+    failing = subprocess.run(
+        [sys.executable, str(CHECKER), str(path)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert failing.returncode == 1
+    assert "every comment segment" in failing.stderr
