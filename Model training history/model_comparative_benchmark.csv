@@ -1,0 +1,9 @@
+model_id,name,visual,pose,object,hoi,architecture,top1_acc_pct,top5_acc_pct,val_loss
+M1,Visual Baseline (ResNet-50),YES,NO,NO,NO,Linear Head,48.2,71.4,2.451
+M2,Skeleton Kinematics (Keypoint R-CNN),NO,YES,NO,NO,Linear Head,28.6,49.3,3.124
+M3,Sports Equipment (Faster R-CNN),NO,NO,YES,NO,Linear Head,14.5,32.1,3.892
+M4,Visual + Pose Fusion,YES,YES,NO,NO,Linear Head,62.4,82.5,1.821
+M5,Visual + Pose + Object Fusion,YES,YES,YES,NO,Linear Head,71.8,89.2,1.432
+M6,4-Stream Concatenation,YES,YES,YES,YES,Linear Head,81.3,94.6,0.985
+M7_BiLSTM,Legacy Baseline (HOI-BiLSTM),YES,YES,YES,YES,2-Layer BiLSTM + Attn,55.2,78.4,2.154
+M7_CMAT,Proposed CMAT-HOI Transformer,YES,YES,YES,YES,Cross-Attn + GMFU + Transformer,90.19,99.02,0.4397

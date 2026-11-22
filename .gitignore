@@ -72,6 +72,8 @@ data/cache/
 # Allow publication thesis diagrams
 !diagrams/**
 !diagrams/**/*.png
+!Model training history/figures/**
+!Model training history/figures/*.png
 
 # Video Files (Anywhere in repo)
 *.mp4
