@@ -1,0 +1,361 @@
+{
+  "title": "CMAT-HOI System Architecture Diagram",
+  "canvas": {
+    "width": 1000,
+    "height": 1150
+  },
+  "style": {
+    "font_family": "Arial, Helvetica, sans-serif",
+    "font_size": 13,
+    "bg_color": "#FFFFFF",
+    "palette": [
+      "#2563EB",
+      "#059669",
+      "#D97706",
+      "#DB2777",
+      "#DC2626",
+      "#0D9488"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "ds",
+      "label": "Raw Sports Video Dataset",
+      "sublabel": "UCF-101 (82 Classes, 9,151 clips)",
+      "x": 160,
+      "y": 90,
+      "width": 240,
+      "height": 55,
+      "shape": "rounded",
+      "fill": "#EFF6FF",
+      "stroke": "#3B82F6"
+    },
+    {
+      "id": "samp",
+      "label": "Temporal Sampling (T=16)",
+      "sublabel": "16 Equidistant Frames (224\u00d7224 px)",
+      "x": 480,
+      "y": 90,
+      "width": 260,
+      "height": 55,
+      "shape": "rounded",
+      "fill": "#EFF6FF",
+      "stroke": "#3B82F6"
+    },
+    {
+      "id": "split",
+      "label": "Dataset Split (70/30)",
+      "sublabel": "Train: 6,408 | Test: 2,743 clips",
+      "x": 800,
+      "y": 90,
+      "width": 260,
+      "height": 55,
+      "shape": "rounded",
+      "fill": "#EFF6FF",
+      "stroke": "#3B82F6"
+    },
+    {
+      "id": "vis",
+      "label": "Visual Stream",
+      "sublabel": "ResNet-50 (2048-d)",
+      "x": 140,
+      "y": 210,
+      "width": 190,
+      "height": 55,
+      "shape": "rounded",
+      "fill": "#DBEAFE",
+      "stroke": "#2563EB"
+    },
+    {
+      "id": "pose",
+      "label": "Body Pose Stream",
+      "sublabel": "Keypoint R-CNN (85-d)",
+      "x": 380,
+      "y": 210,
+      "width": 190,
+      "height": 55,
+      "shape": "rounded",
+      "fill": "#D1FAE5",
+      "stroke": "#059669"
+    },
+    {
+      "id": "obj",
+      "label": "Equipment Stream",
+      "sublabel": "Faster R-CNN (7-d)",
+      "x": 620,
+      "y": 210,
+      "width": 190,
+      "height": 55,
+      "shape": "rounded",
+      "fill": "#FEF3C7",
+      "stroke": "#D97706"
+    },
+    {
+      "id": "hoi",
+      "label": "Interaction Stream",
+      "sublabel": "HOI Kinematics (16-d)",
+      "x": 860,
+      "y": 210,
+      "width": 190,
+      "height": 55,
+      "shape": "rounded",
+      "fill": "#FCE7F3",
+      "stroke": "#DB2777"
+    },
+    {
+      "id": "stems",
+      "label": "Modality Alignment Stems",
+      "sublabel": "1D Conv + LayerNorm (Unified d = 256)",
+      "x": 500,
+      "y": 320,
+      "width": 800,
+      "height": 50,
+      "shape": "rounded",
+      "fill": "#FEF9C3",
+      "stroke": "#D97706"
+    },
+    {
+      "id": "cross",
+      "label": "Bi-Directional Cross-Attention",
+      "sublabel": "Pose Queries Equipment \u25c4\u2500\u2500\u25ba Equipment Queries Pose (4 Heads)",
+      "x": 500,
+      "y": 400,
+      "width": 800,
+      "height": 50,
+      "shape": "rounded",
+      "fill": "#FDF2F8",
+      "stroke": "#BE185D"
+    },
+    {
+      "id": "gmfu",
+      "label": "Gated Multimodal Fusion Unit (GMFU)",
+      "sublabel": "Dynamic Frame-Level Modality Weights g_t \u2500\u2500\u25ba Fused Token F_t",
+      "x": 500,
+      "y": 480,
+      "width": 800,
+      "height": 50,
+      "shape": "rounded",
+      "fill": "#FEF3C7",
+      "stroke": "#B45309"
+    },
+    {
+      "id": "trans",
+      "label": "Spatio-Temporal Transformer Encoder",
+      "sublabel": "3 Layers, 8 Attention Heads, Positional Encoding + [z_CLS]",
+      "x": 500,
+      "y": 560,
+      "width": 800,
+      "height": 50,
+      "shape": "rounded",
+      "fill": "#ECFDF5",
+      "stroke": "#059669"
+    },
+    {
+      "id": "pool",
+      "label": "Multi-Scale 4-Way Temporal Pooling Head",
+      "sublabel": "Concatenation: [ z_CLS ; Attention Saliency ; Max Pool ; Avg Pool ] \u2208 \u211d^1024",
+      "x": 500,
+      "y": 640,
+      "width": 800,
+      "height": 50,
+      "shape": "rounded",
+      "fill": "#CFFAFE",
+      "stroke": "#0891B2"
+    },
+    {
+      "id": "mlp",
+      "label": "3-Layer MLP Classifier",
+      "sublabel": "Linear(1024 \u2192 512 \u2192 256 \u2192 82)",
+      "x": 200,
+      "y": 760,
+      "width": 260,
+      "height": 60,
+      "shape": "rounded",
+      "fill": "#FEE2E2",
+      "stroke": "#DC2626"
+    },
+    {
+      "id": "loss",
+      "label": "Focal Loss & Label Smoothing",
+      "sublabel": "Focuses on hard sports (\u03b3=1.5, \u03b1=0.08)",
+      "x": 500,
+      "y": 760,
+      "width": 260,
+      "height": 60,
+      "shape": "rounded",
+      "fill": "#FFF1F2",
+      "stroke": "#E11D48"
+    },
+    {
+      "id": "eval",
+      "label": "Model Evaluation (Peak Epoch 23)",
+      "sublabel": "Top-1: 90.19% | Top-5: 99.02% (2,743 test clips)",
+      "x": 800,
+      "y": 760,
+      "width": 260,
+      "height": 60,
+      "shape": "rounded",
+      "fill": "#DCFCE7",
+      "stroke": "#16A34A"
+    },
+    {
+      "id": "live",
+      "label": "Live Camera / Video Input",
+      "sublabel": "30+ FPS Stream (16-Frame Queue)",
+      "x": 200,
+      "y": 890,
+      "width": 260,
+      "height": 60,
+      "shape": "rounded",
+      "fill": "#F0FDFA",
+      "stroke": "#0D9488"
+    },
+    {
+      "id": "engine",
+      "label": "ActionInferenceEngine",
+      "sublabel": "Low Latency: ~18.4 ms Forward Pass",
+      "x": 500,
+      "y": 890,
+      "width": 260,
+      "height": 60,
+      "shape": "rounded",
+      "fill": "#CCFBF1",
+      "stroke": "#0D9488"
+    },
+    {
+      "id": "out",
+      "label": "82 Action Predictions & UI",
+      "sublabel": "Streamlit & Tkinter Desktop GUI",
+      "x": 800,
+      "y": 890,
+      "width": 260,
+      "height": 60,
+      "shape": "rounded",
+      "fill": "#D1FAE5",
+      "stroke": "#059669"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ds",
+      "to": "samp",
+      "label": "Raw Clips"
+    },
+    {
+      "from": "samp",
+      "to": "split",
+      "label": "T=16"
+    },
+    {
+      "from": "split",
+      "to": "obj",
+      "label": "Train Videos"
+    },
+    {
+      "from": "stems",
+      "to": "cross"
+    },
+    {
+      "from": "cross",
+      "to": "gmfu"
+    },
+    {
+      "from": "gmfu",
+      "to": "trans"
+    },
+    {
+      "from": "trans",
+      "to": "pool"
+    },
+    {
+      "from": "pool",
+      "to": "mlp",
+      "label": "1024-d"
+    },
+    {
+      "from": "mlp",
+      "to": "loss",
+      "label": "Logits"
+    },
+    {
+      "from": "loss",
+      "to": "eval",
+      "label": "Checkpoints"
+    },
+    {
+      "from": "eval",
+      "to": "engine",
+      "label": "best_model.pt"
+    },
+    {
+      "from": "live",
+      "to": "engine",
+      "label": "Frames"
+    },
+    {
+      "from": "engine",
+      "to": "out",
+      "label": "Top-1 / Top-5"
+    }
+  ],
+  "groups": [
+    {
+      "id": "grp_data",
+      "label": "1. DATA PREPARATION & INGESTION",
+      "node_ids": [
+        "ds",
+        "samp",
+        "split"
+      ],
+      "fill": "#F8FAFC",
+      "stroke": "#94A3B8"
+    },
+    {
+      "id": "grp_ext",
+      "label": "2. 4-STREAM FEATURE EXTRACTION",
+      "node_ids": [
+        "vis",
+        "pose",
+        "obj",
+        "hoi"
+      ],
+      "fill": "#FAF5FF",
+      "stroke": "#9333EA"
+    },
+    {
+      "id": "grp_model",
+      "label": "3. CMAT-HOI CORE TRANSFORMER NETWORK (PROPOSED)",
+      "node_ids": [
+        "stems",
+        "cross",
+        "gmfu",
+        "trans",
+        "pool"
+      ],
+      "fill": "#FFFDF5",
+      "stroke": "#D97706"
+    },
+    {
+      "id": "grp_opt",
+      "label": "4. MODEL TRAINING & RIGOROUS EVALUATION",
+      "node_ids": [
+        "mlp",
+        "loss",
+        "eval"
+      ],
+      "fill": "#FEF2F2",
+      "stroke": "#EF4444"
+    },
+    {
+      "id": "grp_dep",
+      "label": "5. REAL-TIME DEPLOYMENT & ACTION PREDICTION",
+      "node_ids": [
+        "live",
+        "engine",
+        "out"
+      ],
+      "fill": "#ECFDF5",
+      "stroke": "#059669"
+    }
+  ]
+}
