@@ -1,11 +1,36 @@
+# Methodology Section (with Explicit Figure Filenames)
+
+> **File Path**: `E:\Akhi Thesis\Paper writing\METHODOLOGY.md`  
+> **Target Section**: `\section{Methodology}` in IEEE Conference / Journal LaTeX  
+> **Writing Skills Applied**: `research-paper-writing` (Module Triad) and `humanizer` (Direct, human academic voice)
+
+---
+
+## 🖼️ Figure Upload & Reference Manifest for Methodology
+
+| Figure Label | Exact Filename | Local Disk Location | Section Placement | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Fig.~\ref{fig:pipeline}** | `system_architecture_diagram.png` | [`Paper writing/figures/system_architecture_diagram.png`](file:///E:/Akhi%20Thesis/Paper%20writing/figures/system_architecture_diagram.png) | Section III (Top, double-column `figure*`) | End-to-end CMAT-HOI architectural pipeline: 4 extraction streams, 1D Conv stems ($d=256$), Bi-Directional Cross-Attention, GMFU, Spatio-Temporal Transformer, 4-way pooling, and MLP head. |
+| **Fig.~\ref{fig:attention_weights}** | `temporal_attention_weights.png` | [`Paper writing/figures/temporal_attention_weights.png`](file:///E:/Akhi%20Thesis/Paper%20writing/figures/temporal_attention_weights.png) | Section III-C / III-F (Single-column `figure`) | Frame-wise cross-attention heatmap between limb joints and sports equipment, alongside temporal attention weights $\alpha_t$ capturing peak athletic phases. |
+
+> **Note for Overleaf / Submission Platforms**:
+> - If your figures are placed in a subfolder named `figures/`, keep `\includegraphics[...]{figures/filename.png}`.
+> - If you upload figures directly to the root folder in Overleaf, simply change the path to `\includegraphics[...]{filename.png}`.
+
+---
+
+## 📝 Complete LaTeX Source Code
+
+```latex
 \section{Methodology}
 
-This section details the proposed Cross-Modal Attention Transformer for Human--Object Interaction (CMAT-HOI). The architecture processes synchronized visual appearance, human joint kinematics, sports equipment bounding dynamics, and geometric interaction features across uniform video temporal windows. Fig.~\ref{fig:pipeline} illustrates the overall pipeline.
+This section details the proposed Cross-Modal Attention Transformer for Human--Object Interaction (CMAT-HOI). The architecture processes synchronized visual appearance, human joint kinematics, sports equipment bounding dynamics, and geometric interaction features across uniform video temporal windows. Fig.~\ref{fig:pipeline} illustrates the complete architectural pipeline.
 
 \begin{figure*}[t]
 \centering
+% File name for upload: system_architecture_diagram.png
 \includegraphics[width=0.96\textwidth]{figures/system_architecture_diagram.png}
-\caption{Overall architecture of CMAT-HOI. Input video frames are decomposed into four synchronized streams: visual appearance ($2048$-d), skeletal pose ($85$-d), sports equipment ($7$-d), and geometric HOI ($16$-d). Modality stems project each stream to a uniform dimension ($d=256$) with local temporal convolutions. A bi-directional cross-attention module models limb-equipment interactions. The Gated Multimodal Fusion Unit adaptively weights stream contributions before sequence encoding through a 3-layer Transformer. A 4-way multi-scale temporal pooling head aggregates token representations into a $1024$-d vector for final 82-class action classification.}
+\caption{Overall architecture of CMAT-HOI (File: \texttt{system_architecture_diagram.png}). Input video frames are decomposed into four synchronized streams: visual appearance ($2048$-d), skeletal pose ($85$-d), sports equipment ($7$-d), and geometric HOI ($16$-d). Modality stems project each stream to a uniform dimension ($d=256$) with local temporal convolutions. A bi-directional cross-attention module models limb-equipment interactions. The Gated Multimodal Fusion Unit adaptively weights stream contributions before sequence encoding through a 3-layer Transformer. A 4-way multi-scale temporal pooling head aggregates token representations into a $1024$-d vector for final 82-class action classification.}
 \label{fig:pipeline}
 \end{figure*}
 
@@ -55,7 +80,15 @@ Concurrently, object features query the human pose to associate gear motion with
 O_{\text{enh}} = \text{LayerNorm}\left(O + \text{Dropout}(\text{MHA}(Q=O, K=P, V=P))\right)
 \end{equation}
 
-\textbf{Technical Advantages:} Mutual cross-attention filters out background objects that do not correlate with body keypoints. The enhanced representations $P_{\text{enh}}$ and $O_{\text{enh}}$ encode interactive kinematics without increasing the sequence length.
+\begin{figure}[t]
+\centering
+% File name for upload: temporal_attention_weights.png
+\includegraphics[width=\linewidth]{figures/temporal_attention_weights.png}
+\caption{Visualization of cross-modal and temporal attention dynamics (File: \texttt{temporal_attention_weights.png}). (Top) Joint-to-equipment cross-attention matrix tracking mutual spatial correlation between wrist joints and athletic apparatus across frames. (Bottom) Temporal attention weights $\alpha_t$ focusing peak activations on the primary action execution window.}
+\label{fig:attention_weights}
+\end{figure}
+
+\textbf{Technical Advantages:} Mutual cross-attention filters out background objects that do not correlate with body keypoints, as visualized in the attention distribution of Fig.~\ref{fig:attention_weights}. The enhanced representations $P_{\text{enh}}$ and $O_{\text{enh}}$ encode interactive kinematics without increasing the sequence length.
 
 \subsection{Gated Multimodal Fusion Unit (GMFU)}
 \textbf{Motivation:} Different sports depend on different modalities. Activities like diving or skiing present strong visual scene cues, whereas weightlifting or bodyweight squats depend almost entirely on skeleton articulation. Fixed summation or static concatenation cannot adjust to these varying modality reliabilities.
@@ -105,7 +138,7 @@ where $\text{FFN}(x) = W_b \cdot \text{GELU}(W_a x + b_a) + b_b$.
     \begin{equation}
     z_{\text{CLS}} = Z_L[0] \in \mathbb{R}^{256}
     \end{equation}
-    \item \textbf{Attention Pooling:} Weighted summation across frame tokens $t \in \{1, \dots, T\}$ guided by a learnable scoring vector $w \in \mathbb{R}^{128}$:
+    \item \textbf{Attention Pooling:} Weighted summation across frame tokens $t \in \{1, \dots, T\}$ guided by a learnable scoring vector $w \in \mathbb{R}^{128}$ (shown in Fig.~\ref{fig:attention_weights}):
     \begin{equation}
     \alpha_t = \frac{\exp(w^\top \tanh(W_\alpha Z_L[t]))}{\sum_{j=1}^T \exp(w^\top \tanh(W_\alpha Z_L[j]))}, \quad z_{\text{Attn}} = \sum_{t=1}^T \alpha_t Z_L[t]
     \end{equation}
@@ -151,3 +184,4 @@ During training, three feature-space data augmentations are applied:
 \end{itemize}
 
 \textbf{Technical Advantages:} The focal weighting prevents gradient saturation from common action classes, while label smoothing reduces overconfident predictions on visually similar sports activities.
+```
