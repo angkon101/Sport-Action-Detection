@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" version="24.0.0" type="device">
   <diagram id="CMAT_HOI_Simple_Blocks" name="Methodology Architecture">
-    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1520" math="0" shadow="0">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1180" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="banner" value="&lt;b style='font-size: 17px; color: #FFFFFF;'&gt;CMAT-HOI: System Methodology &amp;amp; Architecture Diagram&lt;/b&gt;&lt;br&gt;&lt;span style='font-size: 11px; color: #94A3B8;'&gt;End-to-End Multimodal Sports Action Recognition (82 Classes)&lt;/span&gt;" style="rounded=1;arcSize=6;fillColor=#0F172A;strokeColor=#1E293B;strokeWidth=2;html=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="banner" value="&lt;b style='font-size: 17px; color: #FFFFFF;'&gt;CMAT-HOI: System Methodology &amp;amp; Architecture Diagram&lt;/b&gt;&lt;br&gt;&lt;span style='font-size: 11px; color: #94A3B8;'&gt;End-to-End Multimodal Sports Action Recognition Framework (82 Classes)&lt;/span&gt;" style="rounded=1;arcSize=6;fillColor=#0F172A;strokeColor=#1E293B;strokeWidth=2;html=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1120" height="55" as="geometry" />
         </mxCell>
         <mxCell id="g1" value="&lt;b&gt;1. DATA PREPARATION &amp;amp; INGESTION&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
@@ -80,50 +80,29 @@
         <mxCell id="e_trans_pool" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_trans" target="b_pool">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="g4" value="&lt;b&gt;4. MODEL TRAINING &amp;amp; RIGOROUS EVALUATION&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="870" width="1120" height="145" as="geometry" />
+        <mxCell id="g4" value="&lt;b&gt;4. CLASSIFICATION HEAD, LOSS FORMULATION &amp;amp; RIGOROUS EVALUATION&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="870" width="1120" height="185" as="geometry" />
         </mxCell>
-        <mxCell id="b_mlp" value="&lt;b style='font-size:12px; color:#B91C1C;'&gt;3-Layer MLP Classifier&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;1024 ──► 512 ──► 256 ──► 82&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;AdamW (lr=1e-4) + Cosine LR&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEE2E2;strokeColor=#DC2626;" vertex="1" parent="1">
-          <mxGeometry x="60" y="910" width="310" height="85" as="geometry" />
+        <mxCell id="b_mlp" value="&lt;b style='font-size:12px; color:#B91C1C;'&gt;3-Layer MLP Classifier Head&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;1024 ──► 512 ──► 256 ──► 82&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;Linear + LayerNorm + GELU + Dropout&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEE2E2;strokeColor=#DC2626;" vertex="1" parent="1">
+          <mxGeometry x="60" y="915" width="330" height="95" as="geometry" />
         </mxCell>
-        <mxCell id="b_loss" value="&lt;b style='font-size:12px; color:#9F1239;'&gt;Focal Loss &amp;amp; Smoothing&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;γ = 1.5, α = 0.08, ε = 0.08&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;Suppresses Easy Sport Classes&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FFF1F2;strokeColor=#E11D48;" vertex="1" parent="1">
-          <mxGeometry x="410" y="910" width="340" height="85" as="geometry" />
+        <mxCell id="b_loss" value="&lt;b style='font-size:12px; color:#9F1239;'&gt;Focal Loss with Label Smoothing&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;L_focal (γ = 1.5, α = 0.08, ε = 0.08)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;AdamW (lr=1e-4) + Cosine Annealing&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FFF1F2;strokeColor=#E11D48;" vertex="1" parent="1">
+          <mxGeometry x="420" y="915" width="340" height="95" as="geometry" />
         </mxCell>
-        <mxCell id="b_eval" value="&lt;b style='font-size:12px; color:#15803D;'&gt;Model Evaluation (Epoch 23)&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:11px; font-weight:bold; color:#14532D;'&gt;Top-1: 90.19% &amp;nbsp;|&amp;nbsp; Top-5: 99.02%&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#166534;'&gt;2,743 Disjoint Test Clips (best_model.pt)&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#DCFCE7;strokeColor=#16A34A;" vertex="1" parent="1">
-          <mxGeometry x="790" y="910" width="350" height="85" as="geometry" />
+        <mxCell id="b_eval" value="&lt;b style='font-size:12px; color:#15803D;'&gt;82-Class Action Recognition&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:11px; font-weight:bold; color:#14532D;'&gt;Top-1: 90.19% &amp;nbsp;|&amp;nbsp; Top-5: 99.02%&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#166534;'&gt;Evaluated on 2,743 Disjoint Test Clips (Epoch 23)&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#DCFCE7;strokeColor=#16A34A;" vertex="1" parent="1">
+          <mxGeometry x="790" y="915" width="350" height="95" as="geometry" />
         </mxCell>
-        <mxCell id="e_pool_mlp" value="1024-d" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.2;exitY=1.0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_pool" target="b_mlp">
+        <mxCell id="e_pool_mlp" value="Z_pool (1024-d)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.2;exitY=1.0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_pool" target="b_mlp">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e_mlp_loss" value="Logits" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_mlp" target="b_loss">
+        <mxCell id="e_mlp_loss" value="Logits ŷ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_mlp" target="b_loss">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e_loss_eval" value="Checkpoint" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_loss" target="b_eval">
+        <mxCell id="e_loss_eval" value="Backprop &amp; Val" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_loss" target="b_eval">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="g5" value="&lt;b&gt;5. REAL-TIME DEPLOYMENT &amp;amp; PREDICTION&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="1030" width="1120" height="140" as="geometry" />
-        </mxCell>
-        <mxCell id="b_live" value="&lt;b style='font-size:12px; color:#0F766E;'&gt;Live Video / Camera Input&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;30+ FPS Web Camera / Match Footage&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;16-Frame Circular Queue Buffer&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#F0FDFA;strokeColor=#0D9488;" vertex="1" parent="1">
-          <mxGeometry x="60" y="1065" width="310" height="85" as="geometry" />
-        </mxCell>
-        <mxCell id="b_eng" value="&lt;b style='font-size:12px; color:#0F766E;'&gt;ActionInferenceEngine&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;src/inference/engine.py&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#115E59; font-weight:bold;'&gt;Latency: ~18.4 ms / forward pass&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#CCFBF1;strokeColor=#0D9488;" vertex="1" parent="1">
-          <mxGeometry x="410" y="1065" width="340" height="85" as="geometry" />
-        </mxCell>
-        <mxCell id="b_out" value="&lt;b style='font-size:12px; color:#047857;'&gt;82 Action Predictions &amp;amp; UI&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;Streamlit Dashboard &amp;amp; Tkinter GUI&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#065F46; font-weight:bold;'&gt;Top-1 &amp;amp; Top-5 Probabilities + HUD&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#D1FAE5;strokeColor=#059669;" vertex="1" parent="1">
-          <mxGeometry x="790" y="1065" width="350" height="85" as="geometry" />
-        </mxCell>
-        <mxCell id="e_eval_eng" value="Deploy best_model.pt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.5;exitY=1.0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_eval" target="b_eng">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e_live_eng" value="Frames" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_live" target="b_eng">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e_eng_out" value="Probabilities" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_eng" target="b_out">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="cap" value="&lt;b&gt;Fig. 1.&lt;/b&gt; System Architecture Diagram: CMAT-HOI End-to-End Sports Action Recognition Framework." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#475569;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="40" y="1185" width="1120" height="25" as="geometry" />
+        <mxCell id="cap" value="&lt;b&gt;Fig. 1.&lt;/b&gt; Methodology Architecture Diagram of the Proposed CMAT-HOI Framework for Sports Action Recognition (82 Classes)." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#475569;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1075" width="1120" height="25" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
