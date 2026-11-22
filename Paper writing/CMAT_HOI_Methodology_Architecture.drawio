@@ -1,68 +1,68 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" version="24.0.0" type="device">
-  <diagram id="CMAT_HOI_Simple_Blocks" name="Methodology Architecture">
-    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1180" math="0" shadow="0">
+  <diagram id="CMAT_HOI_System_Architecture" name="System Architecture">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1150" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="banner" value="&lt;b style='font-size: 17px; color: #FFFFFF;'&gt;CMAT-HOI: System Methodology &amp;amp; Architecture Diagram&lt;/b&gt;&lt;br&gt;&lt;span style='font-size: 11px; color: #94A3B8;'&gt;End-to-End Multimodal Sports Action Recognition Framework (82 Classes)&lt;/span&gt;" style="rounded=1;arcSize=6;fillColor=#0F172A;strokeColor=#1E293B;strokeWidth=2;html=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="banner" value="&lt;b style='font-size: 17px; color: #FFFFFF;'&gt;CMAT-HOI: System Model Architecture Diagram&lt;/b&gt;&lt;br&gt;&lt;span style='font-size: 11px; color: #94A3B8;'&gt;Cross-Modal Attention Transformer with Human-Object Interaction for Sports Action Recognition (82 Classes)&lt;/span&gt;" style="rounded=1;arcSize=6;fillColor=#0F172A;strokeColor=#1E293B;strokeWidth=2;html=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1120" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="g1" value="&lt;b&gt;1. DATA PREPARATION &amp;amp; INGESTION&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="90" width="1120" height="125" as="geometry" />
+        <mxCell id="g1" value="&lt;b&gt;1. VIDEO INGESTION &amp;amp; TEMPORAL SAMPLING&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="1120" height="115" as="geometry" />
         </mxCell>
-        <mxCell id="b_ds" value="&lt;b style='font-size:12px; color:#1E40AF;'&gt;Raw Video Dataset&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#475569;'&gt;UCF-101 (82 Sports, 9,151 clips)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#EFF6FF;strokeColor=#3B82F6;" vertex="1" parent="1">
-          <mxGeometry x="60" y="125" width="270" height="65" as="geometry" />
+        <mxCell id="b_raw" value="&lt;b style='font-size:12px; color:#1E40AF;'&gt;Raw Video Input&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#475569;'&gt;UCF-101 Subset (9,151 clips, 82 classes)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#EFF6FF;strokeColor=#3B82F6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="125" width="290" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="b_samp" value="&lt;b style='font-size:12px; color:#1E40AF;'&gt;Temporal Sampling (T = 16)&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#475569;'&gt;16 Equidistant Frames (224 × 224 px)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#EFF6FF;strokeColor=#3B82F6;" vertex="1" parent="1">
-          <mxGeometry x="370" y="125" width="360" height="65" as="geometry" />
+        <mxCell id="b_sample" value="&lt;b style='font-size:12px; color:#1E40AF;'&gt;Uniform Temporal Sampling&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#475569;'&gt;Extract T = 16 Equidistant Frames (224 × 224 px)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#EFF6FF;strokeColor=#3B82F6;" vertex="1" parent="1">
+          <mxGeometry x="410" y="125" width="360" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="b_split" value="&lt;b style='font-size:12px; color:#1E40AF;'&gt;Dataset Split&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#475569;'&gt;70% Train (6,408) &amp;nbsp;|&amp;nbsp; 30% Test (2,743)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#EFF6FF;strokeColor=#3B82F6;" vertex="1" parent="1">
-          <mxGeometry x="770" y="125" width="370" height="65" as="geometry" />
+        <mxCell id="b_seq" value="&lt;b style='font-size:12px; color:#1E40AF;'&gt;Synchronized Clip Sequence&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#475569;'&gt;Sequence: { I_1, I_2, ..., I_16 } ∈ ℝ^(16 × 3 × 224 × 224)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#EFF6FF;strokeColor=#3B82F6;" vertex="1" parent="1">
+          <mxGeometry x="830" y="125" width="310" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="e1_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_ds" target="b_samp">
+        <mxCell id="e1_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_raw" target="b_sample">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e1_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_samp" target="b_split">
+        <mxCell id="e1_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_sample" target="b_seq">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="g2" value="&lt;b&gt;2. 4-STREAM FEATURE EXTRACTION&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="230" width="1120" height="130" as="geometry" />
+        <mxCell id="g2" value="&lt;b&gt;2. MULTIMODAL FEATURE EXTRACTION (4 SYNCHRONIZED PARALLEL STREAMS)&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="1120" height="135" as="geometry" />
         </mxCell>
-        <mxCell id="b_vis" value="&lt;b style='font-size:12px; color:#1D4ED8;'&gt;Visual Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;ResNet-50 (2048-d)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;Scene &amp;amp; Context&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#DBEAFE;strokeColor=#2563EB;" vertex="1" parent="1">
-          <mxGeometry x="60" y="265" width="255" height="75" as="geometry" />
+        <mxCell id="b_vis" value="&lt;b style='font-size:12px; color:#1D4ED8;'&gt;Visual Appearance Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; font-weight:bold; color:#1E293B;'&gt;ResNet-50 (avgpool)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:10px; color:#2563EB;'&gt;&lt;b&gt;X_vis ∈ ℝ^(16 × 2048)&lt;/b&gt;&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#DBEAFE;strokeColor=#2563EB;" vertex="1" parent="1">
+          <mxGeometry x="60" y="255" width="255" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="b_pose" value="&lt;b style='font-size:12px; color:#047857;'&gt;Body Pose Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;Keypoint R-CNN (85-d)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;17 Joints &amp;amp; Velocities&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#D1FAE5;strokeColor=#059669;" vertex="1" parent="1">
-          <mxGeometry x="345" y="265" width="255" height="75" as="geometry" />
+        <mxCell id="b_pose" value="&lt;b style='font-size:12px; color:#047857;'&gt;Skeletal Kinematics Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; font-weight:bold; color:#1E293B;'&gt;Keypoint R-CNN (17 joints + vel)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:10px; color:#059669;'&gt;&lt;b&gt;X_pose ∈ ℝ^(16 × 85)&lt;/b&gt;&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#D1FAE5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="345" y="255" width="255" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="b_obj" value="&lt;b style='font-size:12px; color:#B45309;'&gt;Equipment Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;Faster R-CNN (7-d)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;Sports Apparatus Bounding Box&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEF3C7;strokeColor=#D97706;" vertex="1" parent="1">
-          <mxGeometry x="630" y="265" width="255" height="75" as="geometry" />
+        <mxCell id="b_obj" value="&lt;b style='font-size:12px; color:#B45309;'&gt;Sports Apparatus Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; font-weight:bold; color:#1E293B;'&gt;Faster R-CNN (FPN Detection)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:10px; color:#D97706;'&gt;&lt;b&gt;X_obj ∈ ℝ^(16 × 7)&lt;/b&gt;&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEF3C7;strokeColor=#D97706;" vertex="1" parent="1">
+          <mxGeometry x="630" y="255" width="255" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="b_hoi" value="&lt;b style='font-size:12px; color:#BE185D;'&gt;Interaction Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;HOI Engine (16-d)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;Player-Equipment Angles &amp;amp; Dist&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1">
-          <mxGeometry x="915" y="265" width="225" height="75" as="geometry" />
+        <mxCell id="b_hoi" value="&lt;b style='font-size:12px; color:#BE185D;'&gt;Geometric HOI Stream&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; font-weight:bold; color:#1E293B;'&gt;Kinematic Interaction Engine&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:10px; color:#DB2777;'&gt;&lt;b&gt;X_hoi ∈ ℝ^(16 × 16)&lt;/b&gt;&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FCE7F3;strokeColor=#DB2777;" vertex="1" parent="1">
+          <mxGeometry x="915" y="255" width="225" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="e_sp_ext" value="Train Batches" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.5;exitY=1.0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_split" target="b_obj">
+        <mxCell id="e_seq_ext" value="Extract Streams" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.5;exitY=1.0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_seq" target="b_obj">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="g3" value="&lt;b&gt;3. CMAT-HOI CORE TRANSFORMER NETWORK (PROPOSED)&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFDF5;strokeColor=#D97706;strokeWidth=2;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=13;fontColor=#92400E;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="375" width="1120" height="480" as="geometry" />
+        <mxCell id="g3" value="&lt;b&gt;3. PROPOSED CMAT-HOI NETWORK ARCHITECTURE&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#FFFDF5;strokeColor=#D97706;strokeWidth=2;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=13;fontColor=#92400E;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="370" width="1120" height="480" as="geometry" />
         </mxCell>
-        <mxCell id="b_stems" value="&lt;b style='font-size:12.5px; color:#92400E;'&gt;Modality Alignment Stems&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; color:#451A03;'&gt;1D Conv + LayerNorm (Projects 4 streams to uniform d = 256)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEF9C3;strokeColor=#D97706;" vertex="1" parent="1">
-          <mxGeometry x="80" y="415" width="1040" height="60" as="geometry" />
+        <mxCell id="b_stems" value="&lt;b style='font-size:12.5px; color:#92400E;'&gt;Unified Modality Alignment Stems (d = 256)&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#451A03;'&gt;Linear(in_dim → 256) + LayerNorm + 1D Conv(k=3, p=1) + GELU ──► &lt;b&gt;E_vis, E_pose, E_obj, E_hoi ∈ ℝ^(16 × 256)&lt;/b&gt;&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEF9C3;strokeColor=#D97706;" vertex="1" parent="1">
+          <mxGeometry x="80" y="410" width="1040" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="b_cross" value="&lt;b style='font-size:12.5px; color:#831843;'&gt;Bi-Directional Cross-Attention Module&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; color:#4C0519;'&gt;Pose Queries Equipment (P_enh) &amp;nbsp;◄──►&amp;nbsp; Equipment Queries Pose (O_enh)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FDF2F8;strokeColor=#BE185D;" vertex="1" parent="1">
-          <mxGeometry x="80" y="505" width="1040" height="60" as="geometry" />
+        <mxCell id="b_cross" value="&lt;b style='font-size:12.5px; color:#831843;'&gt;Bi-Directional Keypoint–Equipment Cross-Attention Module (h = 4 Heads, d_k = 64)&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#4C0519;'&gt;Pose queries Equipment: &lt;b&gt;P_enh = LN(E_pose + MHA(Q_p, K_o, V_o))&lt;/b&gt; &amp;nbsp;◄──►&amp;nbsp; Equipment queries Pose: &lt;b&gt;O_enh = LN(E_obj + MHA(Q_o, K_p, V_p))&lt;/b&gt;&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FDF2F8;strokeColor=#BE185D;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="1040" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="b_gmfu" value="&lt;b style='font-size:12.5px; color:#78350F;'&gt;Gated Multimodal Fusion Unit (GMFU)&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; color:#451A03;'&gt;Dynamic Modality Weights: g_t = Softmax(W_g · [V ; P ; O ; H]) &amp;nbsp;►&amp;nbsp; Fused Token F_t&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEF3C7;strokeColor=#B45309;" vertex="1" parent="1">
-          <mxGeometry x="80" y="595" width="1040" height="60" as="geometry" />
+        <mxCell id="b_gmfu" value="&lt;b style='font-size:12.5px; color:#78350F;'&gt;Gated Multimodal Fusion Unit (GMFU) — Dynamic Modality Attention Weighting&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#451A03;'&gt;Gating Vector: &lt;b&gt;g_t = Softmax(W_g · [E_vis ; P_enh ; O_enh ; E_hoi] + b_g) ∈ ℝ^4&lt;/b&gt; &amp;nbsp;►&amp;nbsp; Fused Token: &lt;b&gt;F_t = ∑ g_t,m · E_m,t ∈ ℝ^256&lt;/b&gt;&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEF3C7;strokeColor=#B45309;" vertex="1" parent="1">
+          <mxGeometry x="80" y="590" width="1040" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="b_trans" value="&lt;b style='font-size:12.5px; color:#064E3B;'&gt;Spatio-Temporal Transformer Encoder&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; color:#022C22;'&gt;3 Encoder Layers, 8 Attention Heads, Positional Encoding + Learnable [z_CLS] Token&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#ECFDF5;strokeColor=#059669;" vertex="1" parent="1">
-          <mxGeometry x="80" y="685" width="1040" height="60" as="geometry" />
+        <mxCell id="b_trans" value="&lt;b style='font-size:12.5px; color:#064E3B;'&gt;Spatio-Temporal Transformer Encoder (3 Layers, Pre-LayerNorm, 8 Heads, d_ff = 1024)&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#022C22;'&gt;Token Input Sequence: &lt;b&gt;Z_0 = [ z_CLS ; F_1 ; F_2 ; ... ; F_16 ] + E_pos ∈ ℝ^(17 × 256)&lt;/b&gt; &amp;nbsp;(Captures Full Temporal Motion Dynamics)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#ECFDF5;strokeColor=#059669;" vertex="1" parent="1">
+          <mxGeometry x="80" y="680" width="1040" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="b_pool" value="&lt;b style='font-size:12.5px; color:#0E7490;'&gt;Multi-Scale 4-Way Temporal Pooling Head&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10.5px; color:#164E63;'&gt;Concatenates: [ z_CLS ; Attention Saliency ; Max Pool ; Avg Pool ] ∈ ℝ^1024&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#CFFAFE;strokeColor=#0891B2;" vertex="1" parent="1">
-          <mxGeometry x="80" y="775" width="1040" height="60" as="geometry" />
+        <mxCell id="b_pool" value="&lt;b style='font-size:12.5px; color:#0E7490;'&gt;Multi-Scale 4-Way Temporal Pooling Head&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#164E63;'&gt;Concatenation: &lt;b&gt;Z_pool = [ z_CLS (256-d) ; z_Attn (256-d) ; z_Max (256-d) ; z_Avg (256-d) ] ∈ ℝ^1024&lt;/b&gt; &amp;nbsp;(Unified Action Descriptor)&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#CFFAFE;strokeColor=#0891B2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="770" width="1040" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="e_s_stems" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.5;exitY=1.0;exitDx=0;exitDy=0;entryX=0.3;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_pose" target="b_stems">
+        <mxCell id="e_s_stems1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.5;exitY=1.0;exitDx=0;exitDy=0;entryX=0.3;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_pose" target="b_stems">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e_s_stems2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.5;exitY=1.0;exitDx=0;exitDy=0;entryX=0.7;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_obj" target="b_stems">
@@ -80,17 +80,17 @@
         <mxCell id="e_trans_pool" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_trans" target="b_pool">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="g4" value="&lt;b&gt;4. CLASSIFICATION HEAD, LOSS FORMULATION &amp;amp; RIGOROUS EVALUATION&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="40" y="870" width="1120" height="185" as="geometry" />
+        <mxCell id="g4" value="&lt;b&gt;4. CLASSIFICATION HEAD, LOSS FORMULATION &amp;amp; RECOGNITION OUTPUT&lt;/b&gt;" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.5;dashed=1;verticalAlign=top;spacingTop=8;fontStyle=1;fontSize=12;fontColor=#334155;container=1;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="865" width="1120" height="195" as="geometry" />
         </mxCell>
-        <mxCell id="b_mlp" value="&lt;b style='font-size:12px; color:#B91C1C;'&gt;3-Layer MLP Classifier Head&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;1024 ──► 512 ──► 256 ──► 82&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;Linear + LayerNorm + GELU + Dropout&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEE2E2;strokeColor=#DC2626;" vertex="1" parent="1">
-          <mxGeometry x="60" y="915" width="330" height="95" as="geometry" />
+        <mxCell id="b_mlp" value="&lt;b style='font-size:12px; color:#B91C1C;'&gt;3-Layer MLP Classifier Head&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;Linear(1024 → 512) + LN + GELU + Drop(0.3)&lt;br&gt;──► Linear(512 → 256) ──► Linear(256 → 82)&lt;br&gt;&lt;b&gt;Logits: ŷ ∈ ℝ^82&lt;/b&gt;&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FEE2E2;strokeColor=#DC2626;" vertex="1" parent="1">
+          <mxGeometry x="60" y="905" width="330" height="95" as="geometry" />
         </mxCell>
-        <mxCell id="b_loss" value="&lt;b style='font-size:12px; color:#9F1239;'&gt;Focal Loss with Label Smoothing&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;L_focal (γ = 1.5, α = 0.08, ε = 0.08)&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#64748B;'&gt;AdamW (lr=1e-4) + Cosine Annealing&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FFF1F2;strokeColor=#E11D48;" vertex="1" parent="1">
-          <mxGeometry x="420" y="915" width="340" height="95" as="geometry" />
+        <mxCell id="b_loss" value="&lt;b style='font-size:12px; color:#9F1239;'&gt;Focal Loss with Label Smoothing&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:10px; color:#334155;'&gt;&lt;b&gt;L_focal = - ∑ α_c · (1 - p_c)^γ · y_c^(smooth) · log(p_c)&lt;/b&gt;&lt;br&gt;Focusing γ = 1.5, Balancing α_c = 0.08, Smoothing ε = 0.08&lt;br&gt;AdamW (lr=1e-4) + Cosine Annealing&lt;/span&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#FFF1F2;strokeColor=#E11D48;" vertex="1" parent="1">
+          <mxGeometry x="420" y="905" width="340" height="95" as="geometry" />
         </mxCell>
-        <mxCell id="b_eval" value="&lt;b style='font-size:12px; color:#15803D;'&gt;82-Class Action Recognition&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:11px; font-weight:bold; color:#14532D;'&gt;Top-1: 90.19% &amp;nbsp;|&amp;nbsp; Top-5: 99.02%&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9px; color:#166534;'&gt;Evaluated on 2,743 Disjoint Test Clips (Epoch 23)&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#DCFCE7;strokeColor=#16A34A;" vertex="1" parent="1">
-          <mxGeometry x="790" y="915" width="350" height="95" as="geometry" />
+        <mxCell id="b_eval" value="&lt;b style='font-size:12px; color:#15803D;'&gt;82-Class Action Recognition&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:11.5px; font-weight:bold; color:#14532D;'&gt;Top-1 Accuracy: 90.19%&lt;br&gt;Top-5 Accuracy: 99.02%&lt;/span&gt;&lt;br&gt;&lt;font style='font-size:9.5px; color:#166534;'&gt;Evaluated on 2,743 Disjoint Test Clips (Peak Epoch 23)&lt;/font&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;strokeWidth=1.5;align=center;verticalAlign=middle;shadow=1;fillColor=#DCFCE7;strokeColor=#16A34A;" vertex="1" parent="1">
+          <mxGeometry x="790" y="905" width="350" height="95" as="geometry" />
         </mxCell>
         <mxCell id="e_pool_mlp" value="Z_pool (1024-d)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.2;exitY=1.0;exitDx=0;exitDy=0;entryX=0.5;entryY=0.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_pool" target="b_mlp">
           <mxGeometry relative="1" as="geometry" />
@@ -98,10 +98,13 @@
         <mxCell id="e_mlp_loss" value="Logits ŷ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_mlp" target="b_loss">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e_loss_eval" value="Backprop &amp; Val" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_loss" target="b_eval">
+        <mxCell id="e_loss_eval" value="Validation" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;" edge="1" parent="1" source="b_loss" target="b_eval">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cap" value="&lt;b&gt;Fig. 1.&lt;/b&gt; Methodology Architecture Diagram of the Proposed CMAT-HOI Framework for Sports Action Recognition (82 Classes)." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#475569;fontStyle=2;" vertex="1" parent="1">
+        <mxCell id="e_loss_backprop" value="∇ Loss (Backpropagation)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=10;fontColor=#334155;;exitX=0.5;exitY=0.0;exitDx=0;exitDy=0;entryX=0.5;entryY=1.0;entryDx=0;entryDy=0" edge="1" parent="1" source="b_loss" target="b_trans">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cap" value="&lt;b&gt;Fig. 1.&lt;/b&gt; System Model Architecture of the Proposed CMAT-HOI Framework for Sports Action Recognition (82 Classes)." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#475569;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="40" y="1075" width="1120" height="25" as="geometry" />
         </mxCell>
       </root>

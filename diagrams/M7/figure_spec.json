@@ -1,5 +1,5 @@
 {
-  "title": "CMAT-HOI System Methodology Architecture Diagram",
+  "title": "CMAT-HOI System Model Architecture Diagram",
   "canvas": {
     "width": 1000,
     "height": 920
@@ -19,9 +19,9 @@
   },
   "nodes": [
     {
-      "id": "ds",
-      "label": "Raw Sports Video Dataset",
-      "sublabel": "UCF-101 (82 Classes, 9,151 clips)",
+      "id": "raw",
+      "label": "Raw Video Input",
+      "sublabel": "UCF-101 (9,151 clips, 82 classes)",
       "x": 160,
       "y": 80,
       "width": 240,
@@ -32,8 +32,8 @@
     },
     {
       "id": "samp",
-      "label": "Temporal Sampling (T=16)",
-      "sublabel": "16 Equidistant Frames (224\u00d7224 px)",
+      "label": "Uniform Temporal Sampling",
+      "sublabel": "Extract T = 16 Frames (224\u00d7224 px)",
       "x": 480,
       "y": 80,
       "width": 260,
@@ -43,9 +43,9 @@
       "stroke": "#3B82F6"
     },
     {
-      "id": "split",
-      "label": "Dataset Split (70/30)",
-      "sublabel": "Train: 6,408 | Test: 2,743 clips",
+      "id": "seq",
+      "label": "Synchronized Sequence",
+      "sublabel": "{I_1, ..., I_16} \u2208 \u211d^(16\u00d73\u00d7224\u00d7224)",
       "x": 800,
       "y": 80,
       "width": 260,
@@ -56,8 +56,8 @@
     },
     {
       "id": "vis",
-      "label": "Visual Stream",
-      "sublabel": "ResNet-50 (2048-d)",
+      "label": "Visual Appearance",
+      "sublabel": "ResNet-50 [16 \u00d7 2048]",
       "x": 140,
       "y": 195,
       "width": 190,
@@ -68,8 +68,8 @@
     },
     {
       "id": "pose",
-      "label": "Body Pose Stream",
-      "sublabel": "Keypoint R-CNN (85-d)",
+      "label": "Skeletal Kinematics",
+      "sublabel": "Keypoint R-CNN [16 \u00d7 85]",
       "x": 380,
       "y": 195,
       "width": 190,
@@ -80,8 +80,8 @@
     },
     {
       "id": "obj",
-      "label": "Equipment Stream",
-      "sublabel": "Faster R-CNN (7-d)",
+      "label": "Sports Apparatus",
+      "sublabel": "Faster R-CNN [16 \u00d7 7]",
       "x": 620,
       "y": 195,
       "width": 190,
@@ -92,8 +92,8 @@
     },
     {
       "id": "hoi",
-      "label": "Interaction Stream",
-      "sublabel": "HOI Kinematics (16-d)",
+      "label": "Geometric HOI",
+      "sublabel": "Kinematic Engine [16 \u00d7 16]",
       "x": 860,
       "y": 195,
       "width": 190,
@@ -104,8 +104,8 @@
     },
     {
       "id": "stems",
-      "label": "Modality Alignment Stems",
-      "sublabel": "1D Conv + LayerNorm (Unified d = 256)",
+      "label": "Unified Modality Alignment Stems",
+      "sublabel": "Linear + LayerNorm + 1D Conv (d = 256 for all 4 streams)",
       "x": 500,
       "y": 300,
       "width": 800,
@@ -116,8 +116,8 @@
     },
     {
       "id": "cross",
-      "label": "Bi-Directional Cross-Attention",
-      "sublabel": "Pose Queries Equipment \u25c4\u2500\u2500\u25ba Equipment Queries Pose (4 Heads)",
+      "label": "Bi-Directional Keypoint\u2013Equipment Cross-Attention",
+      "sublabel": "Pose Queries Equipment (P_enh) \u25c4\u2500\u2500\u25ba Equipment Queries Pose (O_enh)",
       "x": 500,
       "y": 375,
       "width": 800,
@@ -129,7 +129,7 @@
     {
       "id": "gmfu",
       "label": "Gated Multimodal Fusion Unit (GMFU)",
-      "sublabel": "Dynamic Frame-Level Modality Weights g_t \u2500\u2500\u25ba Fused Token F_t",
+      "sublabel": "Dynamic Modality Weights g_t = Softmax(W_g \u00b7 [V; P; O; H]) \u2500\u2500\u25ba Fused F_t",
       "x": 500,
       "y": 450,
       "width": 800,
@@ -141,7 +141,7 @@
     {
       "id": "trans",
       "label": "Spatio-Temporal Transformer Encoder",
-      "sublabel": "3 Layers, 8 Attention Heads, Positional Encoding + [z_CLS]",
+      "sublabel": "3 Layers, 8 Attention Heads, Positional Encoding + Learnable [z_CLS]",
       "x": 500,
       "y": 525,
       "width": 800,
@@ -153,7 +153,7 @@
     {
       "id": "pool",
       "label": "Multi-Scale 4-Way Temporal Pooling Head",
-      "sublabel": "Concatenation: [ z_CLS ; Attention Saliency ; Max Pool ; Avg Pool ] \u2208 \u211d^1024",
+      "sublabel": "Z_pool = [ z_CLS ; Attention Saliency ; Max Pool ; Avg Pool ] \u2208 \u211d^1024",
       "x": 500,
       "y": 600,
       "width": 800,
@@ -177,7 +177,7 @@
     {
       "id": "loss",
       "label": "Focal Loss & Label Smoothing",
-      "sublabel": "Focuses on hard sports (\u03b3=1.5, \u03b1=0.08)",
+      "sublabel": "\u03b3 = 1.5, \u03b1 = 0.08, \u03b5 = 0.08",
       "x": 500,
       "y": 720,
       "width": 260,
@@ -189,7 +189,7 @@
     {
       "id": "eval",
       "label": "82-Class Action Recognition",
-      "sublabel": "Top-1: 90.19% | Top-5: 99.02% (2,743 test clips)",
+      "sublabel": "Top-1: 90.19% | Top-5: 99.02% (Epoch 23)",
       "x": 800,
       "y": 720,
       "width": 260,
@@ -201,19 +201,19 @@
   ],
   "edges": [
     {
-      "from": "ds",
+      "from": "raw",
       "to": "samp",
-      "label": "Raw Clips"
+      "label": "Video"
     },
     {
       "from": "samp",
-      "to": "split",
+      "to": "seq",
       "label": "T=16"
     },
     {
-      "from": "split",
+      "from": "seq",
       "to": "obj",
-      "label": "Train Videos"
+      "label": "Extract"
     },
     {
       "from": "stems",
@@ -250,18 +250,18 @@
   "groups": [
     {
       "id": "grp_data",
-      "label": "1. DATA PREPARATION & INGESTION",
+      "label": "1. VIDEO INGESTION & TEMPORAL SAMPLING",
       "node_ids": [
-        "ds",
+        "raw",
         "samp",
-        "split"
+        "seq"
       ],
       "fill": "#F8FAFC",
       "stroke": "#94A3B8"
     },
     {
       "id": "grp_ext",
-      "label": "2. 4-STREAM FEATURE EXTRACTION",
+      "label": "2. MULTIMODAL FEATURE EXTRACTION BACKBONES",
       "node_ids": [
         "vis",
         "pose",
@@ -273,7 +273,7 @@
     },
     {
       "id": "grp_model",
-      "label": "3. CMAT-HOI CORE TRANSFORMER NETWORK (PROPOSED)",
+      "label": "3. PROPOSED CMAT-HOI NETWORK ARCHITECTURE",
       "node_ids": [
         "stems",
         "cross",
@@ -286,7 +286,7 @@
     },
     {
       "id": "grp_opt",
-      "label": "4. CLASSIFICATION, LOSS & EVALUATION",
+      "label": "4. CLASSIFICATION HEAD, LOSS FORMULATION & RECOGNITION",
       "node_ids": [
         "mlp",
         "loss",
