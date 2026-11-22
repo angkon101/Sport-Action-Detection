@@ -74,6 +74,8 @@ data/cache/
 !diagrams/**/*.png
 !Model training history/figures/**
 !Model training history/figures/*.png
+!Paper writing/figures/**
+!Paper writing/figures/*.png
 
 # Video Files (Anywhere in repo)
 *.mp4
