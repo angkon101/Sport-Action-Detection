@@ -39,6 +39,11 @@ reports/
 outputs/
 results/
 
+# Allow extracted multimodal features
+!data/features/
+!data/features/**
+!data/features/**/*.pt
+
 # Datasets and Media Folders
 ucf action/
 ucf action*/
